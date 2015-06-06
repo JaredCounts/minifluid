@@ -1,8 +1,6 @@
 /* MathUtil provides helper methods
  * for different math-related things
  */
-final double SQRT_TWO = sqrt(2);
- 
 /**
  * Bilinear Interpolation
  * Given 4 corner points, their respective values, and a point somewhere within that rectangle
