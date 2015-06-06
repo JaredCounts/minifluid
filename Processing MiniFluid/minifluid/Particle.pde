@@ -5,11 +5,26 @@
 class Particle {
   // position and velocity vectors
   // only to be modified by particle
-  private final PVector position, velocity;
+  private final PVector position;
   
-  Particle(PVector position, PVector velocity) {
-    // to prevent rep exposure, we copy the given position and velocities
+  // a reference to the shared fluid grid among particles
+  private final FluidGrid fluidGrid;
+  
+  Particle(FluidGrid fluidGrid, PVector position) {
+    this.fluidGrid = fluidGrid;
+    
+    // to prevent rep exposure, we copy the given position
     this.position = position.get();
-    this.velocity = velocity.get();
+  }
+  
+  /**
+   * update(elapsedTime)
+   * Integrate's the particle's position through fluidGrid's velocity field
+   * @param elapsedTime Time elapsed since the last update.
+   */
+  void update(float elapsedTime) {
+    PVector velocity = fluidGrid.getVelocityAt(position);
+    velocity.mult(elapsedTime);
+    position.add(velocity);
   }
 }
