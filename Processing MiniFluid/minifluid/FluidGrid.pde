@@ -1,4 +1,4 @@
-/* FluidGrid
+/** FluidGrid
  * MAC staggered grid
  * where velocities are stored at cell edges
  * and pressure in cell centers.
@@ -12,10 +12,19 @@ class FluidGrid {
   // to access, use cell cells[i][j], where cell is at the i'th column and j'th row.
   final FluidGridCell[][] cells;
   
-  /* Constructor for fluid grid
-   * Initializes all of the cells in the grid
+  /** Constructor for fluid grid
+   * Initializes all of the cells in the grid.
+   * For best results, choose a cellWidth that's a common factor of regionWidth and regionHeight.
+   * @param cellWidth height and width of each square cell
+   *                  must be > 0
+   * @param regionWidth width of the region to solve fluid in
+   * @param regionHeight height of region
    */
   FluidGrid(double cellWidth, double regionWidth, double regionHeight) {
+    assert(cellWidth > 0);
+    assert(regionWidth > 0);
+    assert(regionHeight > 0);
+    
     this.cellWidth = cellWidth;
     
     int columnCount = (int)Math.ceil(regionWidth / cellWidth);
@@ -41,7 +50,7 @@ class FluidGrid {
     }
   }
 }
-/* FluidGridCell
+/** FluidGridCell
  * Mutable object which acts as a container for pressure, and has references to its edge velocities
  */
 class FluidGridCell {
@@ -49,11 +58,16 @@ class FluidGridCell {
   double pressure; 
   
   // velocity objects which are shared with adjacent cells
+  // must set these manually
   Double velocityXLeft, velocityXRight, velocityYTop, velocityYBottom;
   
   // flag for whether this cell is filled with liquid
   boolean hasLiquid;
-   
+  
+  /**
+   * Construct an empty FluidGridCell
+   * note that edge velocities must be set manually. 
+   */
   FluidGridCell() {
     pressure = 0;
     hasLiquid = false;
