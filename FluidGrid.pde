@@ -80,7 +80,7 @@ class FluidGrid {
    * http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
    */
   public void solve() {
-    // determine maximum timestep usinmg Courant-Friedrich's-Lewy (CFL) condition
+    // determine maximum timestep using Courant-Friedrich's-Lewy (CFL) condition
     // as mentioned in Foster and Metaxa's paper,
     // there's a condition that gives us the maximum stable timestep for numerical integration using a course grid
     // 1 > maxAxisVelocity * timestep / cellSize
@@ -95,15 +95,15 @@ class FluidGrid {
       for (fluidGridCell cell : cellColumn) {
         // at this point, incompressability should be solved for from the previous solve step
         // therefore the inward velocity of each cell should match the outward velocity
-        // so all we need is one x value and one y value from the cell
-        // another note, we don't need to do any expensive square-root operations until we found our max value
+        // so all we need is one x value and one y velocity value from the cell
+        // another note, we don't need to do any expensive square-root operations until we find our max value
         float velocityMagnitudeSquared = sq(cell.velocityXLeft) + sq(cell.velocityYTop);
         maxVelocityMagitudeSquared = max(maxVelocityMagitudeSquared, velocityMagnitudeSquared);
       }
     }
     float maxVelocityMagnitude = sqrt(maxVelocityMagitudeSquared);
     
-    // and finally, CFL
+    // and finally, CFL condition
     float timestep = cellWidth / maxVelocityMagnitude;
     assert(timestep > 0);
      
