@@ -166,6 +166,8 @@ class FluidGrid {
   
   /**
    * Returns a velocity at the given position
+   * @param position
+   *         must be within grid region
    */
   private PVector getVelocityAt(PVector position) {
     // Since velocity is stored in discrete positions (the cell edges)
@@ -218,7 +220,8 @@ class FluidGrid {
 
   /**
    * returns the column containing the given position
-   * position MUST BE within (0,0) -> (regionWidth, regionHeight) rectangle
+   * @param position
+   *     MUST BE within (0,0) -> (regionWidth, regionHeight) rectangle
    */
   private int columnFromPosition(PVector position) {
     assert(position.x >= 0);
