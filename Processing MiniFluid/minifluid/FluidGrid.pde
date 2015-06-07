@@ -1,9 +1,8 @@
 /** 
  * Fluid Grid
- * MAC staggered grid
- * where velocities are stored at cell edges
- * and pressure in cell centers.
  * Mutable object.
+ * MAC staggered grid where velocities are stored at cell edges and pressure in cell centers.
+ * Also contains helper methods and a solve method for moving the grid values forward in time.
  */
 class FluidGrid {
   // cells will be square

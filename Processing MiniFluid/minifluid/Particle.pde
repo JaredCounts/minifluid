@@ -1,6 +1,8 @@
 /**
  * Particle
  * Lives in fluid region and follows velocity fields
+ * Particles are massless, so they have no physical effect on the simulation
+ * They are simply used for visualizing the liquid!
  */
  
 class Particle {
