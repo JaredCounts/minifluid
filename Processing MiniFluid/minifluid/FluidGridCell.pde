@@ -1,4 +1,5 @@
-/** FluidGridCell
+/** 
+ * Fluid Grid Cell
  * Mutable object which acts as a container for pressure, and has references to its edge velocities
  */
 class FluidGridCell {

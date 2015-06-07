@@ -1,6 +1,7 @@
-/* MathUtil provides helper methods
- * for different math-related things
+/* Math Util 
+ * provides helper methods for different math-related things
  */
+ 
 /**
  * Bilinear Interpolation
  * Given 4 corner points, their respective values, and a point somewhere within that rectangle

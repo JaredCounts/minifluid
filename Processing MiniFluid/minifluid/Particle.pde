@@ -2,6 +2,7 @@
  * Particle
  * Lives in fluid region and follows velocity fields
  */
+ 
 class Particle {
   // position and velocity vectors
   // only to be modified by particle
@@ -10,7 +11,14 @@ class Particle {
   // a reference to the shared fluid grid among particles
   private final FluidGrid fluidGrid;
   
+  /**
+   * Construct a particle
+   * position must be within the fluid grid's region
+   */
   Particle(FluidGrid fluidGrid, PVector position) {
+    assert(position.x < fluidGrid.getRegionWidth());
+    assert(position.y < fluidGrid.getRegionHeight());
+    
     this.fluidGrid = fluidGrid;
     
     // to prevent rep exposure, we copy the given position

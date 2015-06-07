@@ -1,4 +1,5 @@
-/** FluidGrid
+/** 
+ * Fluid Grid
  * MAC staggered grid
  * where velocities are stored at cell edges
  * and pressure in cell centers.
@@ -6,14 +7,15 @@
  */
 class FluidGrid {
   // cells will be square
-  final float cellWidth;
+  private final float cellWidth;
 
   // grid of cells
   // to access, use cell cells[i][j], where cell is at the i'th column and j'th row.
   // cells[0][0]'s top left corner is at (0,0).
   private final FluidGridCell[][] cells;
 
-  /** Constructor for fluid grid
+  /** 
+   * Constructor for fluid grid
    * Initializes all of the cells in the grid.
    * For best results, choose a cellWidth that's a common factor of regionWidth and regionHeight.
    * @param cellWidth height and width of each square cell
@@ -21,7 +23,7 @@ class FluidGrid {
    * @param regionWidth width of the region to solve fluid in
    * @param regionHeight height of region
    */
-  FluidGrid(float cellWidth, float regionWidth, float regionHeight) {
+  public FluidGrid(float cellWidth, float regionWidth, float regionHeight) {
     assert(cellWidth > 0);
     assert(regionWidth > 0);
     assert(regionHeight > 0);
@@ -60,6 +62,20 @@ class FluidGrid {
   }
   
   /**
+   * Get the fluid grid's region width
+   */
+  public float getRegionWidth() {
+    return cellWidth * cells.length;
+  }
+  /**
+   * Get the fluid grid's region height
+   */
+  public float getRegionHeight() {
+    return cellWidth * cells[0].length;
+  }
+  
+  
+  /**
    * Solving
    * Using Foster and Fedkiw's "Practical Animation of Liquids" as reference
    * http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
@@ -90,6 +106,7 @@ class FluidGrid {
     
     // and finally, CFL
     float timestep = cellWidth / maxVelocityMagnitude;
+    assert(timestep > 0);
      
     int solveCount;
     if (REAL_TIME) {
@@ -103,9 +120,8 @@ class FluidGrid {
       // store it over for the next solve
       TimeKeeper.setLeftOverSolveTime(leftOverTime);
     }
-    else {
+    else
       solveCount = 1;
-    }
     
     for (int solve = 0; solve < solveCount; solve++) {
       /* -------------- External Forces -------------- */
@@ -115,11 +131,11 @@ class FluidGrid {
           FluidGridCell cell = fluidGridCell[i][j];
           // since edges are shared between cells, we only solve for left and top
           cell.velocityXLeft += GRAVITY.x * timestep;
-          cell.velocityYTop += GRAVITY.y * timestep;
+          cell.velocityYTop  += GRAVITY.y * timestep;
           
           // except for the bottom-most and right-most cells
           if (i == fluidGridCell.length-1)
-            cell.velocityXRight += GRAVITY.x * timestep;
+            cell.velocityXRight  += GRAVITY.x * timestep;
           if (j == fluidGridCell[i].length-1)
             cell.velocityYBottom += GRAVITY.y * timestep;
         }
@@ -151,7 +167,7 @@ class FluidGrid {
   /**
    * Returns a velocity at the given position
    */
-  public PVector getVelocityAt(PVector position) {
+  private PVector getVelocityAt(PVector position) {
     // Since velocity is stored in discrete positions (the cell edges)
     // we must bilinearly interpolate between these positions to get a velocity at other arbitrary positions
 
@@ -201,20 +217,20 @@ class FluidGrid {
 
 
   /**
-   * returns the column containing position
+   * returns the column containing the given position
    * position MUST BE within (0,0) -> (regionWidth, regionHeight) rectangle
    */
-  int columnFromPosition(PVector position) {
+  private int columnFromPosition(PVector position) {
     assert(position.x >= 0);
     assert(position.x <= cellWidth * cells.length);
     return floor(position.x / cellWidth);
   }
 
   /**
-   * returns the row containing position
+   * returns the row containing the given position
    * position MUST BE within (0,0) -> (regionWidth, regionHeight) rectangle
    */
-  int rowFromPosition(PVector position) {
+  private int rowFromPosition(PVector position) {
     assert(position.y >= 0);
     assert(position.y <= cellWidth * cells[0].length);
     return floor(position.y / cellWidth);
