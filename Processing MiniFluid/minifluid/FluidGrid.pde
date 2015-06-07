@@ -91,46 +91,61 @@ class FluidGrid {
     // and finally, CFL
     float timestep = cellWidth / maxVelocityMagnitude;
      
-    
-    
-    /* -------------- External Forces -------------- */
-    // just integrate gravity into cell edge velocities
-    for (int i = 0; i < fluidGridCell.length; i++) {
-      for (int j = 0; j < fluidGridCell[i].length; j++) {
-        FluidGridCell cell = fluidGridCell[i][j];
-        // since edges are shared between cells, we only solve for left and top
-        cell.velocityXLeft += GRAVITY.x * timestep;
-        cell.velocityYTop += GRAVITY.y * timestep;
-        
-        // except for the bottom-most and right-most cells
-        if (i == fluidGridCell.length-1)
-          cell.velocityXRight += GRAVITY.x * timestep;
-        if (j == fluidGridCell[i].length-1)
-          cell.velocityYBottom += GRAVITY.y * timestep;
-      }
+    int solveCount;
+    if (REAL_TIME) {
+      float timeToSolveFor = TimeKeeper.getTimeToSolveFor();
+      // separate time to solve for into discrete steps
+      solveCount = floor(timeToSolveFor / timestep);
+      
+      // compute left over time we couldn't account for
+      float leftOverTime = timeToSolveFor - solveCount * timestep
+      
+      // store it over for the next solve
+      TimeKeeper.setLeftOverSolveTime(leftOverTime);
+    }
+    else {
+      solveCount = 1;
     }
     
-    /* -------------- Convection -------------- */
-    // using semi-lagrangian method
-    //   Stam, "Stable Fluids"
-    //   http://www.autodeskresearch.com/pdf/ns.pdf
-    
-    
-    /* -------------- Viscosity -------------- */
-    // using standard central differencing
-    //   Foster and Metaxas, "Realistic Animation of Liquids"
-    //   http://graphics.stanford.edu/courses/cs468-05-fall/Papers/foster-metaxas-gmip96.pdf
-    
-    
-    /* -------------- Incompressability and Pressure -------------- */
-    // using successive over-relaxation
-    //   Foster and Metaxas, "Realistic Animation of Liquids"
-    // *NOTE* this is the easy approach. 
-    // Fedkiw and Foster suggests using Preconditioning Conjugate Gradient (PCG) on the Laplacian linear system
-    // relating incompressability and pressure
-    // http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
-    // idk what any of that means yet
-
+    for (int solve = 0; solve < solveCount; solve++) {
+      /* -------------- External Forces -------------- */
+      // just integrate gravity into cell edge velocities
+      for (int i = 0; i < fluidGridCell.length; i++) {
+        for (int j = 0; j < fluidGridCell[i].length; j++) {
+          FluidGridCell cell = fluidGridCell[i][j];
+          // since edges are shared between cells, we only solve for left and top
+          cell.velocityXLeft += GRAVITY.x * timestep;
+          cell.velocityYTop += GRAVITY.y * timestep;
+          
+          // except for the bottom-most and right-most cells
+          if (i == fluidGridCell.length-1)
+            cell.velocityXRight += GRAVITY.x * timestep;
+          if (j == fluidGridCell[i].length-1)
+            cell.velocityYBottom += GRAVITY.y * timestep;
+        }
+      }
+      
+      /* -------------- Convection -------------- */
+      // using semi-lagrangian method
+      //   Stam, "Stable Fluids"
+      //   http://www.autodeskresearch.com/pdf/ns.pdf
+      
+      
+      /* -------------- Viscosity -------------- */
+      // using standard central differencing
+      //   Foster and Metaxas, "Realistic Animation of Liquids"
+      //   http://graphics.stanford.edu/courses/cs468-05-fall/Papers/foster-metaxas-gmip96.pdf
+      
+      
+      /* -------------- Incompressability and Pressure -------------- */
+      // using successive over-relaxation
+      //   Foster and Metaxas, "Realistic Animation of Liquids"
+      // *NOTE* this is the easy approach. 
+      // Fedkiw and Foster suggests using Preconditioning Conjugate Gradient (PCG) on the Laplacian linear system
+      // relating incompressability and pressure
+      // http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
+      // idk what any of that means yet
+    }
   }
   
   /**
