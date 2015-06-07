@@ -66,7 +66,32 @@ class FluidGrid {
    */
   public void solve() {
     // determine maximum timestep usinmg Courant-Friedrich's-Lewy (CFL) condition
-    float timestep = 1f;
+    // as mentioned in Foster and Metaxa's paper,
+    // there's a condition that gives us the maximum stable timestep for numerical integration using a course grid
+    // 1 > maxAxisVelocity * timestep / cellSize
+    // where maxAxisVelocity is the maximum velocity along any edge of a grid cell
+    //   thus, timestep < cellSize/maxVelocity
+    // for a dynamically sized grid (like a quadtree), it would be
+    //   timestep < max(cellSize/cellVelocity)
+    // where the right hand side is the maximum of the ratio of cellsize to velocity per each cell.
+    float timestep;
+    float maxVelocityMagitudeSquared = 0;
+    for (fluidGridCell[] cellColumn : cells) {
+      for (fluidGridCell cell : cellColumn) {
+        // at this point, incompressability should be solved for from the previous solve step
+        // therefore the inward velocity of each cell should match the outward velocity
+        // so all we need is one x value and one y value from the cell
+        // another note, we don't need to do any expensive square-root operations until we found our max value
+        float velocityMagnitudeSquared = sq(cell.velocityXLeft) + sq(cell.velocityYTop);
+        maxVelocityMagitudeSquared = max(maxVelocityMagitudeSquared, velocityMagnitudeSquared);
+      }
+    }
+    float maxVelocityMagnitude = sqrt(maxVelocityMagitudeSquared);
+    
+    // and finally, CFL
+    float timestep = cellWidth / maxVelocityMagnitude;
+     
+    
     
     /* -------------- External Forces -------------- */
     // just integrate gravity into cell edge velocities

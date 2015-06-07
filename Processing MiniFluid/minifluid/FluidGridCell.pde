@@ -26,5 +26,5 @@ class FluidGridCell {
     pressure = 0;
     hasLiquid = false;
   }
- 
+  
 }
