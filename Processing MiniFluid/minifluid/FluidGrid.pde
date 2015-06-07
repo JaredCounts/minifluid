@@ -58,7 +58,43 @@ class FluidGrid {
       }
     }
   }
-
+  
+  /**
+   * Solving
+   * Using Foster and Fedkiw's "Practical Animation of Liquids" as reference
+   * http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
+   */
+  public void solve() {
+    // determine maximum timestep usinmg Courant-Friedrich's-Lewy (CFL) condition
+    
+    
+    /* -------------- External Forces -------------- */
+    // just add gravity in
+    
+    
+    /* -------------- Convection -------------- */
+    // using semi-lagrangian method
+    //   Stam, "Stable Fluids"
+    //   http://www.autodeskresearch.com/pdf/ns.pdf
+    
+    
+    /* -------------- Viscosity -------------- */
+    // using standard central differencing
+    //   Foster and Metaxas, "Realistic Animation of Liquids"
+    //   http://graphics.stanford.edu/courses/cs468-05-fall/Papers/foster-metaxas-gmip96.pdf
+    
+    
+    /* -------------- Incompressability and Pressure -------------- */
+    // using successive over-relaxation
+    //   Foster and Metaxas, "Realistic Animation of Liquids"
+    // *NOTE* this is the easy approach. 
+    // Fedkiw and Foster suggests using Preconditioning Conjugate Gradient (PCG) on the Laplacian linear system
+    // relating incompressability and pressure
+    // http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
+    // idk what any of that means yet
+    
+  }
+  
   /**
    * Returns a velocity at the given position
    */
