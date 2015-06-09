@@ -91,8 +91,8 @@ class FluidGrid {
     // where the right hand side is the maximum of the ratio of cellsize to velocity per each cell.
     float timestep;
     float maxVelocityMagitudeSquared = 0;
-    for (fluidGridCell[] cellColumn : cells) {
-      for (fluidGridCell cell : cellColumn) {
+    for (FluidGridCell[] cellColumn : cells) {
+      for (FluidGridCell cell : cellColumn) {
         // at this point, incompressability should be solved for from the previous solve step
         // therefore the inward velocity of each cell should match the outward velocity
         // so all we need is one x value and one y velocity value from the cell
@@ -104,20 +104,20 @@ class FluidGrid {
     float maxVelocityMagnitude = sqrt(maxVelocityMagitudeSquared);
     
     // and finally, CFL condition
-    float timestep = cellWidth / maxVelocityMagnitude;
+    timestep = cellWidth / maxVelocityMagnitude;
     assert(timestep > 0);
      
     int solveCount;
     if (REAL_TIME) {
-      float timeToSolveFor = TimeKeeper.getTimeToSolveFor();
+      float timeToSolveFor = timeKeeper.getTimeToSolveFor();
       // separate time to solve for into discrete steps
       solveCount = floor(timeToSolveFor / timestep);
       
       // compute left over time we couldn't account for
-      float leftOverTime = timeToSolveFor - solveCount * timestep
+      float leftOverTime = timeToSolveFor - solveCount * timestep;
       
       // store it over for the next solve
-      TimeKeeper.setLeftOverSolveTime(leftOverTime);
+      timeKeeper.setLeftOverSolveTime(leftOverTime);
     }
     else
       solveCount = 1;
@@ -125,17 +125,17 @@ class FluidGrid {
     for (int solve = 0; solve < solveCount; solve++) {
       /* -------------- External Forces -------------- */
       // just integrate gravity into cell edge velocities
-      for (int i = 0; i < fluidGridCell.length; i++) {
-        for (int j = 0; j < fluidGridCell[i].length; j++) {
-          FluidGridCell cell = fluidGridCell[i][j];
+      for (int i = 0; i < cells.length; i++) {
+        for (int j = 0; j < cells[i].length; j++) {
+          FluidGridCell cell = cells[i][j];
           // since edges are shared between cells, we only solve for left and top
           cell.velocityXLeft += GRAVITY.x * timestep;
           cell.velocityYTop  += GRAVITY.y * timestep;
           
           // except for the bottom-most and right-most cells
-          if (i == fluidGridCell.length-1)
+          if (i == cells.length-1)
             cell.velocityXRight  += GRAVITY.x * timestep;
-          if (j == fluidGridCell[i].length-1)
+          if (j == cells[i].length-1)
             cell.velocityYBottom += GRAVITY.y * timestep;
         }
       }
@@ -144,7 +144,12 @@ class FluidGrid {
       // using semi-lagrangian method
       //   Stam, "Stable Fluids"
       //   http://www.autodeskresearch.com/pdf/ns.pdf
+      // for any given cell, make an imaginary particle in the middle
+      // then we trace this particle back in time by timestep
+      //   do this using Runge-Kutta or some other higher-order method
+      // then take the "Averaged" velocity at that point and move it to the current cell
       
+      // new velocity = velocityAt(cellCenter moved by -elapsedTime)
       
       /* -------------- Viscosity -------------- */
       // using standard central differencing

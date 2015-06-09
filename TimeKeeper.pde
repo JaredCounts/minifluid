@@ -1,18 +1,20 @@
 /**
  * Time Keeper
  * Mutable singleton class
+ * Processing doesn't like static classes, so I need to just make one here
  * For keeping track of how much time we need to solve for per each frame
  */
+TimeKeeper timeKeeper = new TimeKeeper();
 class TimeKeeper {
-  private static long lastSolveTime;
-  private static long leftOverSolveTime;
-  private static boolean firstSolve = true;
+  private long lastSolveTime;
+  private long leftOverSolveTime;
+  private boolean firstSolve = true;
   
   /**
    * Get amount of time elapsed since last call in seconds
    * plus amount of "left over" time that couldn't be solved for during the last frame
    */
-  public static float getTimeToSolveFor() {
+  public float getTimeToSolveFor() {
     float secondsToSolveFor;
     if (!firstSolve) {
       // compute amount of time to solve for
@@ -36,7 +38,7 @@ class TimeKeeper {
   /**
    * Set amount of time to be added to the time to solve for for the next frame.
    */
-  public static float setLeftOverSolveTime(float seconds) {
+  public void setLeftOverSolveTime(float seconds) {
     long millis = (long)(seconds * 1000);
     leftOverSolveTime = millis;
   }
