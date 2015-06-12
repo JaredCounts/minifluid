@@ -128,8 +128,9 @@ class FluidGrid {
       for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
+          
           // since edges are shared between cells, we only solve for left and top
-          cell.velocityXLeft += GRAVITY.x * timestep;
+          cell.velocityXLeft += GRAVITY.x * timestep; // a bit redundant, but lets not make assumptions
           cell.velocityYTop  += GRAVITY.y * timestep;
           
           // except for the bottom-most and right-most cells
@@ -149,7 +150,48 @@ class FluidGrid {
       //   do this using Runge-Kutta or some other higher-order method
       // then take the "Averaged" velocity at that point and move it to the current cell
       
-      // new velocity = velocityAt(cellCenter moved by -elapsedTime)
+      // however, cells don't *have* a velocity vector at the center
+      // so do we do component-only solves for the centers of edges for now?
+      // Sure.
+      
+      // to not contaminate velocities as we solve, store our new velocities into a temporary matrix
+      // where newVelocities[i][j] gives us the velocity for upper/left wall of cell i,j
+      // we size each by number of cells + 1 to account for very bottom/right edges
+      float[][] newVelocitiesX = new float[cells.length+1][cells[0].length+1];
+      float[][] newVelocitiesY = new float[cells.length+1][cells[0].length+1];
+      for (int i = 0; i < cells.length; i++) {
+        for (int j = 0; j < cells[i].length; j++) {
+          // solve for left edge
+          PVector leftEdgePosition = cells[i][j].leftEdgePosition;
+          PVector leftEdgeTracedPosition = traceFrom(leftEdgePosition, timestep);
+          PVector leftEdgeTracedVelocity = getVelocityAt(leftEdgeTracedPosition);
+          newVelocitiesX[i][j] = leftEdgeTracedVelocity.x;
+          
+          // solve for upper edge
+          PVector topEdgePosition = cells[i][j].topEdgePosition;
+          PVector topEdgeTracedPosition = traceFrom(topEdgePosition, timestep);
+          PVector topEdgeTracedVelocity = getVelocityAt(topEdgeTracedPosition);
+          newVelocitiesY[i][j] = topEdgeTracedVelocity.y;
+          
+        }
+      }
+      
+      // now update our cell velocities
+      for (int i = 0; i < cells.length; i++) {
+        for (int j = 0; j < cells[i].length; j++) {
+          FluidGridCell cell = cells[i][j];
+          
+          cell.velocityXLeft = newVelocitiesX[i][j];
+          cell.velocityYTop = newVelocitiesY[i][j];
+          
+          if (i == cells.length-1)
+            cell.velocityXRight  += newVelocitiesX[i+1][j];
+          if (j == cells[i].length-1)
+            cell.velocityYBottom += newVelocitiesY[i][j+1];
+        }
+        
+      }
+      
       
       /* -------------- Viscosity -------------- */
       // using standard central differencing
@@ -166,6 +208,28 @@ class FluidGrid {
       // http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
       // idk what any of that means yet
     }
+  }
+  
+  /**
+   * Returns the resulting position after amountOfTime starting from the given position
+   */
+  private PVector traceFrom(PVector position, float amountOfTime) {
+    // we use 2nd order Runge-Kutta
+    // which  means we trace only half way before resampling velocity
+    
+    // compute velocity at current location
+    PVector velocity = getVelocityAt(position);
+    
+    // move along that velocity by half a timestep
+    PVector secondPosition = PVector.add(position, PVector.mult(velocity, amountOfTime/2f));
+    
+    // get velocity to where we've moved back
+    PVector secondVelocity = getVelocityAt(secondPosition);
+    
+    // move the rest of the way using our updated velocity
+    PVector finalPosition = PVector.add(secondPosition, PVector.mult(secondVelocity, amountOfTime/2f));
+    
+    return finalPosition;
   }
   
   /**
