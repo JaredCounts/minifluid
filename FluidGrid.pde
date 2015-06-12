@@ -198,6 +198,8 @@ class FluidGrid {
       //   Foster and Metaxas, "Realistic Animation of Liquids"
       //   http://graphics.stanford.edu/courses/cs468-05-fall/Papers/foster-metaxas-gmip96.pdf
       
+      // not sure what they mean here
+      // it seems like they're taking surrounding cells and appending their velocities * viscosity?
       
       /* -------------- Incompressability and Pressure -------------- */
       // using successive over-relaxation
