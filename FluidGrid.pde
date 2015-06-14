@@ -278,13 +278,23 @@ class FluidGrid {
       }
       
       /* -------------- Incompressability and Pressure -------------- */
-      // using successive over-relaxation
-      //   Foster and Metaxas, "Realistic Animation of Liquids"
-      // *NOTE* this is the easy approach. 
-      // Fedkiw and Foster suggests using Preconditioning Conjugate Gradient (PCG) on the Laplacian linear system
-      // relating incompressability and pressure
-      // http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
-      // idk what any of that means yet
+      // using laplacian + linear system solver
+      //   Foster and Fedkiw, "Practical Animation of Liquids"
+      //   http://physbam.stanford.edu/~fedkiw/papers/stanford2001-02.pdf
+      // Foster and Fedkiw's paper describes how we couple pressure with incompressability
+      // via spatial variation
+      // what we want to do is set up a matrix expression AP = b
+      // where P is the vector of unknown pressures to make the velocity field divergence free
+      //   (is this all pressures for liquid cells?)
+      //   (what happens to the old pressures? do we even use those?)
+      // b is the r.h.s of the equation given (I'm not sure what tau is for)
+      // and A is a matrix s.t. a(i,i) = -number of adjacent liquid cells to cell i
+      //                        a(i,j) = a(j,i) = 1 for all liquid cells j adjacent to cell i
+      // I'm guessing, since it's one dimensional, cell i = (x + width * y + width * height * z)
+      // or in our case, (x + width * y)
+      // they suggest using Preconditioned Conjugate Gradient method for solving
+      //   I'd prefer to use an external library to do this for me
+      
     }
   }
   
