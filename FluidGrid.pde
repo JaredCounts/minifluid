@@ -252,10 +252,10 @@ class FluidGrid {
           
           // and lets not forget far right and far bottom edge velocities!
           if (i == cells.length-1) {
-            newVelocitiesX[i+1][j] = cell.velocityXRight + viscousFactor * (cell.velocityXLeft - cell.velocityXRight)
+            newVelocitiesX[i+1][j] = cell.velocityXRight + viscousFactor * (cell.velocityXLeft - cell.velocityXRight);
           }
           if (i == cells.length-1) {
-            newVelocitiesY[i][j+1] = cell.velocityYRight + viscousFactor * (cell.velocityYTop - cell.velocityYBottom)
+            newVelocitiesY[i][j+1] = cell.velocityYBottom + viscousFactor * (cell.velocityYTop - cell.velocityYBottom);
           }
           
         }
