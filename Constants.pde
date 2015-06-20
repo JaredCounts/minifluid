@@ -5,3 +5,6 @@ boolean REAL_TIME = true;
 // not sure what a good value for viscosity would be
 // also this probably belongs in the FluidGrid
 float VISCOSITY = 0.5;
+
+// not sure what a good value would be here either...
+float DENSITY = 1;

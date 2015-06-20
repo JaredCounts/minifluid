@@ -5,45 +5,47 @@
 import org.apache.commons.math3.linear.*;
 
 /** 
- * Matrix
- *
- * Immutable object representing a matrix.
+ * Sparse Matrix
  */
  
-class Matrix {
-  protected final RealLinearOperator matrix;
+class SparseMatrix {
+  protected final OpenMapRealMatrix matrix;
   
   /**
-   * Create a new matrix from a 2D double array
+   * Create a new sparse matrix
    *
-   * @param doubleMatrix
-   *     Matrix of doubles where doubleMatri[j][i] gives us the cell at row j, column i.
-   *     Must have at least one element.
+   * @param number of columns
+   * @param number of rows
    */
-  public Matrix(double[][] doubleMatrix) {
-    matrix = new Array2DRowRealMatrix(doubleMatrix);
+  public SparseMatrix(int columns, int rows) {
+    matrix = new OpenMapRealMatrix(rows, columns);
   }
   
-  protected Matrix(RealLinearOperator matrix) {
-    this.matrix = matrix; 
+  public void setEntry(int column, int row, double value) {
+    matrix.setEntry(row, column, value); // yes, their rows come before columns
   }
-  
 }
 
 /**
  * Vector
- *
- * Immutable object representing a column vector.
  */
 class Vector {
   protected final RealVector vector;
   
-  public Vector(double[] doubleVector) {
-    vector = new ArrayRealVector(doubleVector);
+  public Vector(int rows) {
+    vector = new ArrayRealVector(rows);
   }
   
   protected Vector(RealVector vector) {
     this.vector = vector; 
+  }
+  
+  public void setEntry(int row, double value) {
+    vector.setEntry(row, value);
+  }
+  
+  public double getEntry(int row) {
+    return vector.getEntry(row); 
   }
   
   public int size() {
@@ -77,17 +79,15 @@ class LinearSolver {
    * @param Vector b of known values from Ax = b.
    *
    */
-  public Vector pcgSolve(Matrix A, Vector b) {
-    double[] initialGuess = new double[b.size()];
-    for (int i = 0; i < initialGuess.length; i++)
-      initialGuess[i] = Math.random(); // not sure what to put here, honestly 
-    
-    Vector x0 = new Vector(initialGuess);
+  public Vector pcgSolve(SparseMatrix A, Vector b) {
+    Vector initialGuess = new Vector(b.size());
+    for (int i = 0; i < initialGuess.size(); i++)
+      initialGuess.setEntry(i, Math.random()); // not sure what to put here, honestly 
     
     RealVector x = conjugateGradientSolver.solveInPlace(A.matrix,
                                                         null,
                                                         b.vector,
-                                                        x0.vector);
+                                                        initialGuess.vector);
     return new Vector(x);
   }
 }
