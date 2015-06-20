@@ -292,7 +292,7 @@ class FluidGrid {
       // where P is the vector of unknown pressures to make the velocity field divergence free
       //   (is this all pressures for liquid cells?)
       //   (what happens to the old pressures? do we even use those?)
-      // b is the r.h.s of the equation given (I'm not sure what tau is for)
+      // b is the r.h.s of the equation given (tau is the cell width)
       // and A is a matrix s.t. a(i,i) = -number of adjacent liquid cells to cell i
       //                        a(i,j) = a(j,i) = 1 for all liquid cells j adjacent to cell i
       // I'm guessing, since it's one dimensional, cell i = (x + width * y + width * height * z)
