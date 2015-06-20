@@ -44,18 +44,23 @@ class FluidGrid {
         cells[i][j].bottomEdgePosition = new PVector(i * cellWidth + cellWidth / 2.f, j * cellWidth + cellWidth);
         cells[i][j].leftEdgePosition = new PVector(i * cellWidth, j * cellWidth + cellWidth/2.f);
         
-        if (i != 0) { // initialize left/right edge velocities
-          // both cells will point to the same velocity objects
-          Float velocityX = new Float(0);
-          cells[i][j].velocityXLeft = velocityX;
+        // initialize left/top edge velocities
+        Float velocityX = new Float(0);
+        cells[i][j].velocityXLeft = velocityX;
+        if (i != 0) // adjacent cells will point to the same velocity objects
           cells[i-1][j].velocityXRight = velocityX;
-        }
         
-        if (j != 0) { // initialize top/bottom edge velocities
-          Float velocityY = new Float(0);
-          cells[i][j].velocityYTop = velocityY;
+        Float velocityY = new Float(0);
+        cells[i][j].velocityYTop = velocityY;
+        if (j != 0)
           cells[i][j-1].velocityYBottom = velocityY;
-        }
+          
+        // also take care of right/bottom edge velocities for far right/bottom cells
+        if (i == columnCount-1)
+          cells[i][j].velocityXRight = new Float(0);
+        
+        if (j == rowCount-1)
+          cells[i][j].velocityYBottom = new Float(0); 
       }
     }
   }
@@ -106,7 +111,7 @@ class FluidGrid {
     // and finally, CFL condition
     timestep = cellWidth / maxVelocityMagnitude;
     assert(timestep > 0);
-     
+    
     int solveCount;
     if (REAL_TIME) {
       float timeToSolveFor = timeKeeper.getTimeToSolveFor();
@@ -121,7 +126,7 @@ class FluidGrid {
     }
     else
       solveCount = 1;
-    
+      
     for (int solve = 0; solve < solveCount; solve++) {
       /* -------------- External Forces -------------- */
       // just integrate gravity into cell edge velocities
