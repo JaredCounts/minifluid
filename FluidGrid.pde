@@ -84,6 +84,13 @@ class FluidGrid {
   }
   
   
+  public void draw() {
+    for (FluidGridCell[] cellColumn : cells) {
+      for (FluidGridCell cell : cellColumn)
+        cell.draw();
+    }
+  }
+  
   /**
    * Solving
    * Using Foster and Fedkiw's "Practical Animation of Liquids" as reference

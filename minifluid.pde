@@ -10,4 +10,5 @@ void draw() {
   fluidGrid.solve();
   
   background(255);
+  fluidGrid.draw();
 }
