@@ -62,8 +62,8 @@ class Vector {
  */
 class LinearSolver {
   private final int MAX_PCG_ITERATIONS = 100;
-  private final double PCG_DELTA = 0.01;
-  private final boolean PCG_CHECK_POSITIVE_DEFINITENESS = true;
+  private final double PCG_DELTA = 2;
+  private final boolean PCG_CHECK_POSITIVE_DEFINITENESS = false;
   private final ConjugateGradient conjugateGradientSolver = 
                       new ConjugateGradient(MAX_PCG_ITERATIONS, // maximum iterations
                                             PCG_DELTA, 

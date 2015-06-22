@@ -14,15 +14,15 @@
  * Left positions and right positions must have same x value respectively
  */
 float bilinearInterpolate(PVector topLeftPosition, float topLeftValue,
-                            PVector topRightPosition, float topRightValue,
-                            PVector bottomRightPosition, float bottomRightValue,
-                            PVector bottomLeftPosition, float bottomLeftValue,
-                            PVector desiredPosition) {
+                          PVector topRightPosition, float topRightValue,
+                          PVector bottomRightPosition, float bottomRightValue,
+                          PVector bottomLeftPosition, float bottomLeftValue,
+                          PVector desiredPosition) {
   // for sanity's sake, make sure we plugged in a rectangle
-  assert(topLeftPosition.y == topRightPosition.y);
-  assert(bottomLeftPosition.y == bottomRightPosition.y);
-  assert(topLeftPosition.x == bottomLeftPosition.x);
-  assert(topRightPosition.x == bottomRightPosition.x);
+  jAssert("bilinearInterpolate: top y positions are not matching: " + topLeftPosition + " vs " + topRightPosition, topLeftPosition.y == topRightPosition.y);
+  jAssert("bilinearInterpolate: bottom y positions are not matching: " + bottomLeftPosition + " vs " + bottomRightPosition, bottomLeftPosition.y == bottomRightPosition.y);
+  jAssert("bilinearInterpolate: left x positions are not matching: " + topLeftPosition + " vs " + bottomLeftPosition, topLeftPosition.x == bottomLeftPosition.x);
+  jAssert("bilinearInterpolate: right x positions are not matching: " + topRightPosition + " vs " + bottomRightPosition, topRightPosition.x == bottomRightPosition.x);
   
   // get the rectangle's width and height
   float rectDeltaX = topRightPosition.x - topLeftPosition.x;
@@ -31,6 +31,11 @@ float bilinearInterpolate(PVector topLeftPosition, float topLeftValue,
   // get desiredPosition's x and y fractional positions between the four corners
   float fractionX = (desiredPosition.x - topLeftPosition.x) / rectDeltaX;
   float fractionY = (desiredPosition.y - topLeftPosition.y) / rectDeltaY;
+  
+  if (rectDeltaX == 0)
+    fractionX = 1;
+  if (rectDeltaY == 0)
+    fractionY = 1;
   
   // first interpolate between the top positions
   float topValue = lerp(topLeftValue, topRightValue, fractionX);

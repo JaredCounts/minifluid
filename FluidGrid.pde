@@ -12,7 +12,7 @@ class FluidGrid {
   // to access, use cell cells[i][j], where cell is at the i'th column and j'th row.
   // cells[0][0]'s top left corner is at (0,0).
   private final FluidGridCell[][] cells;
-  
+
   // the solver we'll be using to solve for incompressability
   private LinearSolver solver;
 
@@ -27,10 +27,10 @@ class FluidGrid {
    */
   public FluidGrid(float cellWidth, float regionWidth, float regionHeight) {
     solver = new LinearSolver();
-    
-    assert(cellWidth > 0);
-    assert(regionWidth > 0);
-    assert(regionHeight > 0);
+
+    jAssert("FluidGrid: cellWidth <= 0", cellWidth > 0);
+    jAssert("FluidGrid: regionWidth < 0", regionWidth > 0);
+    jAssert("FluidGrid: regionHeight < 0", regionHeight > 0);
 
     this.cellWidth = cellWidth;
 
@@ -41,35 +41,38 @@ class FluidGrid {
 
     for (int i = 0; i < columnCount; i++) {
       for (int j = 0; j < rowCount; j++) {
-        cells[i][j] = new FluidGridCell();
+        FluidGridCell cell = new FluidGridCell();
+        cells[i][j] = cell;
         
-        cells[i][j].position = new PVector(i * cellWidth + cellWidth/2.f, j * cellWidth + cellWidth/2.f);
-        cells[i][j].topEdgePosition = new PVector(i * cellWidth + cellWidth / 2.f, j * cellWidth);
-        cells[i][j].rightEdgePosition = new PVector(i * cellWidth + cellWidth, j * cellWidth + cellWidth/2.f);
-        cells[i][j].bottomEdgePosition = new PVector(i * cellWidth + cellWidth / 2.f, j * cellWidth + cellWidth);
-        cells[i][j].leftEdgePosition = new PVector(i * cellWidth, j * cellWidth + cellWidth/2.f);
-        
+        cell.hasLiquid = true; //random(0,1) > 0.5;
+
+        cell.position = new PVector(i * cellWidth + cellWidth/2.f, j * cellWidth + cellWidth/2.f);
+        cell.topEdgePosition = new PVector(i * cellWidth + cellWidth / 2.f, j * cellWidth);
+        cell.rightEdgePosition = new PVector(i * cellWidth + cellWidth, j * cellWidth + cellWidth/2.f);
+        cell.bottomEdgePosition = new PVector(i * cellWidth + cellWidth / 2.f, j * cellWidth + cellWidth);
+        cell.leftEdgePosition = new PVector(i * cellWidth, j * cellWidth + cellWidth/2.f);
+
         // initialize left/top edge velocities
-        Float velocityX = new Float(0);
-        cells[i][j].velocityXLeft = velocityX;
+        Float velocityX = new Float(random(-10, 10));
+        cell.velocityXLeft = velocityX;
         if (i != 0) // adjacent cells will point to the same velocity objects
           cells[i-1][j].velocityXRight = velocityX;
-        
-        Float velocityY = new Float(0);
-        cells[i][j].velocityYTop = velocityY;
+
+        Float velocityY = new Float(random(-10, 10));
+        cell.velocityYTop = velocityY;
         if (j != 0)
           cells[i][j-1].velocityYBottom = velocityY;
-          
+
         // also take care of right/bottom edge velocities for far right/bottom cells
         if (i == columnCount-1)
-          cells[i][j].velocityXRight = new Float(0);
-        
+          cell.velocityXRight = new Float(0);
+
         if (j == rowCount-1)
-          cells[i][j].velocityYBottom = new Float(0); 
+          cell.velocityYBottom = new Float(0);
       }
     }
   }
-  
+
   /**
    * Get the fluid grid's region width
    */
@@ -82,15 +85,15 @@ class FluidGrid {
   public float getRegionHeight() {
     return cellWidth * cells[0].length;
   }
-  
-  
+
+
   public void draw() {
     for (FluidGridCell[] cellColumn : cells) {
       for (FluidGridCell cell : cellColumn)
         cell.draw();
     }
   }
-  
+
   /**
    * Solving
    * Using Foster and Fedkiw's "Practical Animation of Liquids" as reference
@@ -119,37 +122,41 @@ class FluidGrid {
       }
     }
     float maxVelocityMagnitude = sqrt(maxVelocityMagitudeSquared);
-    
+
     // and finally, CFL condition
     timestep = cellWidth / maxVelocityMagnitude;
-    assert(timestep > 0);
-    
+    jAssert("solve: timestep <= 0", timestep > 0);
+
     int solveCount;
     if (REAL_TIME) {
       float timeToSolveFor = timeKeeper.getTimeToSolveFor();
       // separate time to solve for into discrete steps
       solveCount = floor(timeToSolveFor / timestep);
-      
+
       // compute left over time we couldn't account for
       float leftOverTime = timeToSolveFor - solveCount * timestep;
-      
+
       // store it over for the next solve
       timeKeeper.setLeftOverSolveTime(leftOverTime);
     }
-    else
+    else {
       solveCount = 1;
-      
+      timestep = 0.1;
+    }
+    
+    println("timestep " + timestep + ", solveCount " + solveCount);
     for (int solve = 0; solve < solveCount; solve++) {
+      println("external forces");
       /* -------------- External Forces -------------- */
       // just integrate gravity into cell edge velocities
       for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
-          
+
           // since edges are shared between cells, we only solve for left and top
           cell.velocityXLeft += GRAVITY.x * timestep; // a bit redundant, but lets not make assumptions
           cell.velocityYTop  += GRAVITY.y * timestep;
-          
+
           // except for the bottom-most and right-most cells
           if (i == cells.length-1)
             cell.velocityXRight  += GRAVITY.x * timestep;
@@ -157,7 +164,8 @@ class FluidGrid {
             cell.velocityYBottom += GRAVITY.y * timestep;
         }
       }
-      
+
+      println("convection");
       /* -------------- Convection -------------- */
       // using semi-lagrangian method
       //   Stam, "Stable Fluids"
@@ -166,40 +174,40 @@ class FluidGrid {
       // then we trace this particle back in time by timestep
       //   do this using Runge-Kutta or some other higher-order method
       // then take the "Averaged" velocity at that point and move it to the current cell
-      
+
       // however, cells don't *have* a velocity vector at the center
       // so do we do component-only solves for the centers of edges for now?
       // Sure.
-      
+
       // to not contaminate velocities as we solve, store our new velocities into a temporary matrix
       // where newVelocities[i][j] gives us the velocity for upper/left wall of cell i,j
       // we size each by number of cells + 1 to account for very bottom/right edges
       float[][] newVelocitiesX = new float[cells.length+1][cells[0].length+1];
       float[][] newVelocitiesY = new float[cells.length+1][cells[0].length+1];
       for (int i = 0; i < cells.length; i++) {
-        for (int j = 0; j < cells[i].length; j++) {
+        for (int j = 0; j < cells[0].length; j++) {
           FluidGridCell cell = cells[i][j];
-          
+
           // solve for left edge
           PVector leftEdgePosition = cell.leftEdgePosition;
-          PVector leftEdgeTracedPosition = traceFrom(leftEdgePosition, timestep); 
-          PVector leftEdgeTracedVelocity = getVelocityAt(leftEdgeTracedPosition); 
+          PVector leftEdgeTracedPosition = traceFrom(leftEdgePosition, timestep);
+          PVector leftEdgeTracedVelocity = getVelocityAt(leftEdgeTracedPosition);
           newVelocitiesX[i][j] = leftEdgeTracedVelocity.x;
-          
+
           // solve for upper edge
           PVector topEdgePosition = cell.topEdgePosition;
           PVector topEdgeTracedPosition = traceFrom(topEdgePosition, timestep);
           PVector topEdgeTracedVelocity = getVelocityAt(topEdgeTracedPosition);
           newVelocitiesY[i][j] = topEdgeTracedVelocity.y;
-          
+
           // lets not forget the last cells' bottom and right velocities
-          if (i == cells.length-1) {
+          if (i == cells.length-1 && j < cells[0].length) {
             PVector rightEdgePosition = cell.rightEdgePosition;
             PVector rightEdgeTracedPosition = traceFrom(rightEdgePosition, timestep);
             PVector rightEdgeTracedVelocity = getVelocityAt(rightEdgeTracedPosition);
             newVelocitiesX[i+1][j] = rightEdgeTracedVelocity.x;
           }
-          if (j == cells[i].length-1) {
+          if (j == cells[0].length-1 && i < cells.length) {
             PVector bottomEdgePosition = cell.bottomEdgePosition;
             PVector bottomEdgeTracedPosition = traceFrom(bottomEdgePosition, timestep);
             PVector bottomEdgeTracedVelocity = getVelocityAt(bottomEdgeTracedPosition);
@@ -207,46 +215,46 @@ class FluidGrid {
           }
         }
       }
-      
+
       // now update our cell velocities
       for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
-          
+
           cell.velocityXLeft = newVelocitiesX[i][j];
           cell.velocityYTop  = newVelocitiesY[i][j];
-          
+
           if (i == cells.length-1)
             cell.velocityXRight  = newVelocitiesX[i+1][j];
           if (j == cells[i].length-1)
             cell.velocityYBottom = newVelocitiesY[i][j+1];
         }
       }
-      
-      
+
+      println("viscosity");
       /* -------------- Viscosity -------------- */
       // using standard central differencing
       //   Foster and Metaxas, "Realistic Animation of Liquids"
       //   http://graphics.stanford.edu/courses/cs468-05-fall/Papers/foster-metaxas-gmip96.pdf
-      
+
       // for each axis, we add this to velocity:
       // timestep * viscosity * (velocityToLeft - 2*velocity + velocityToRight) / (cellWidth^2)
       // where velocityToLeft and velocityToRight are the velocities one cell over left and right respectively
-      
+
       // it seems to me that by "averaging" adjacent velocities into the middle by a multiple of viscosity,
       // we're simulating viscous drag. An averaged value will be more resistant to change than any single value.
-      
+
       // for the same reason as in convection, we'll be saving velocities into a temporary matrix before applying them
       // so that there isn't any new vs old value contamination as we move across each cell
       // we'll be reusing the float 2D arrays newVelocitiesX and newVelocitiesY
-      
+
       // only need to compute this once
       float viscousFactor = VISCOSITY * timestep / sq(cellWidth);
-      
+
       for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
-          
+
           // solve for left edge
           if (i == 0) {
             // there is no left cell
@@ -257,7 +265,7 @@ class FluidGrid {
             FluidGridCell leftCell = cells[i-1][j];
             newVelocitiesX[i][j] = cell.velocityXLeft + viscousFactor * (leftCell.velocityXLeft - 2f * cell.velocityXLeft + cell.velocityXRight);
           }
-          
+
           // solve for upper edge
           if (j == 0) {
             newVelocitiesY[i][j] = cell.velocityYTop + viscousFactor * (-cell.velocityYTop + cell.velocityYBottom);
@@ -266,7 +274,7 @@ class FluidGrid {
             FluidGridCell topCell = cells[i][j-1];
             newVelocitiesY[i][j] = cell.velocityYTop + viscousFactor * (topCell.velocityYTop - 2f * cell.velocityYTop + cell.velocityYBottom);
           }
-          
+
           // and lets not forget far right and far bottom edge velocities!
           if (i == cells.length-1) {
             newVelocitiesX[i+1][j] = cell.velocityXRight + viscousFactor * (cell.velocityXLeft - cell.velocityXRight);
@@ -274,26 +282,26 @@ class FluidGrid {
           if (i == cells.length-1) {
             newVelocitiesY[i][j+1] = cell.velocityYBottom + viscousFactor * (cell.velocityYTop - cell.velocityYBottom);
           }
-          
         }
       }
-      
+
       // now update our cell velocities
       // we should probably make this its own method
       for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
-          
+
           cell.velocityXLeft = newVelocitiesX[i][j];
           cell.velocityYTop  = newVelocitiesY[i][j];
-          
+
           if (i == cells.length-1)
             cell.velocityXRight  = newVelocitiesX[i+1][j];
           if (j == cells[i].length-1)
             cell.velocityYBottom = newVelocitiesY[i][j+1];
         }
       }
-      
+
+      println("incompressability");
       /* -------------- Incompressability and Pressure -------------- */
       // using laplacian + linear system solver
       //   Foster and Fedkiw, "Practical Animation of Liquids"
@@ -315,34 +323,39 @@ class FluidGrid {
       // and p are the pressure values on the left hand side 
       //
       // cell index in the matrix = (x + width * y + width * height * z) for 3D, or in our case: (x + width * y) for 2D
-      
+
       // set up liquid matrix and divergence vector
       // which respectively make up the A and b of our A x = b equation.
       // where column or row i corresponds to cellColumn + cellRow * cellColumnCount
       // a(i,i) = negative number of adjacent liquid cells
       // a(i,j) = a(j,i) = 1 if cell j adjacent to cell i is liquid, 0 otherwise
-      int matrixWidth = (int)(cells.length * cells[0].length);
-      
+      int matrixWidth = (int)(cells.length + cells.length * cells[0].length);
+
       // matrixWidth can be on the order of millions or billions, even
       // yet we only need to put values along the diagonal and off diagonals
-      
+
       // so it's crucial that we use a sparse matrix,
       // unless we want to use up your computer's entire memory, and take minutes per timestep
-      
+
       // the liquid matrix gives us coefficients for the left hand side of the equation above
       SparseMatrix liquidMatrix = new SparseMatrix(matrixWidth, matrixWidth);
-      
+
       Vector divergenceVector = new Vector(matrixWidth);
-      
+
       // only need to compute this once
       float divergenceFactor = DENSITY * cellWidth / timestep;
-      
+
+      // generating divergenceVector and liquidMatrix
+      println("generating divergenceVector and liquidMatrix: " + matrixWidth);
       for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
           
+          if (!cell.hasLiquid)
+            continue;
+
           int liquidMatrixIndex = i + cells.length * j;
-          
+
           // set diagonal value of the pressure matrix
           // negative number of adjacent cells with liqud
           int adjacentLiquidCellCount = 0;
@@ -352,17 +365,17 @@ class FluidGrid {
             adjacentLiquidCellCount += cells[i+1][j].hasLiquid ? 1 : 0;
           if (j != 0)
             adjacentLiquidCellCount += cells[i][j-1].hasLiquid ? 1 : 0;
-          if (j != cells[i].length)
+          if (j != cells[0].length-1)
             adjacentLiquidCellCount += cells[i][j+1].hasLiquid ? 1 : 0;
-          
+
           liquidMatrix.setEntry(liquidMatrixIndex, // column
                                 liquidMatrixIndex, // row
                                 -adjacentLiquidCellCount); // value
-          
+
           // set off-diagonal values of the pressure matrix
           if (i != 0) {
             if (cells[i-1][j].hasLiquid) {
-              int liquidMatrixAdjacentIndex = (i-1) * cells.length * j;
+              int liquidMatrixAdjacentIndex = (i-1) + cells.length * j;
               liquidMatrix.setEntry(liquidMatrixIndex, // column
                                     liquidMatrixAdjacentIndex, // row
                                     1.0); // value
@@ -373,7 +386,7 @@ class FluidGrid {
           }
           if (i != cells.length-1) {
             if (cells[i+1][j].hasLiquid) {
-              int liquidMatrixAdjacentIndex = (i+1) * cells.length * j;
+              int liquidMatrixAdjacentIndex = (i+1) + cells.length * j;
               liquidMatrix.setEntry(liquidMatrixIndex, // column
                                     liquidMatrixAdjacentIndex, // row
                                     1.0); // value
@@ -382,10 +395,10 @@ class FluidGrid {
                                     1.0); // value
             }
           }
-          
+
           if (j != 0) {
             if (cells[i][j-1].hasLiquid) {
-              int liquidMatrixAdjacentIndex = i * cells.length * (j-1);
+              int liquidMatrixAdjacentIndex = i + cells.length * (j-1);
               liquidMatrix.setEntry(liquidMatrixIndex, // column
                                     liquidMatrixAdjacentIndex, // row
                                     1.0); // value
@@ -394,9 +407,9 @@ class FluidGrid {
                                     1.0); // value
             }
           }
-          if (i != cells.length-1) {
+          if (j != cells[0].length-1) {
             if (cells[i][j+1].hasLiquid) {
-              int liquidMatrixAdjacentIndex = i * cells.length * (j+1);
+              int liquidMatrixAdjacentIndex = i + cells.length * (j+1);
               liquidMatrix.setEntry(liquidMatrixIndex, // column
                                     liquidMatrixAdjacentIndex, // row
                                     1.0); // value
@@ -405,80 +418,82 @@ class FluidGrid {
                                     1.0); // value
             }
           }
-          
+
           // and finally the divergence vector entry
           float totalInwardVelocity = cell.velocityYTop - cell.velocityYBottom + cell.velocityXLeft - cell.velocityXRight;
           float divergence = totalInwardVelocity * divergenceFactor;
           divergenceVector.setEntry(liquidMatrixIndex, (double)divergence);
         }
       }
-      
+
       // solve for pressures
       // where liquidMatrix * pressures = divergence
       // we use PCG, as suggested by Foster and Fedkiw in their paper
       // since the liquidMatrix is symmetric, sparse, and positive definite
+      println("solving for pressures");
       Vector pressures = solver.pcgSolve(liquidMatrix, divergenceVector);
-      
+
       // update cell pressures 
+      println("update cell pressures");
       for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
-          
+
           int pressuresIndex = i + j * cells.length;
-          
+
           float pressure = (float)pressures.getEntry(pressuresIndex);
-          
+
           cell.pressure = pressure;
         }
       }
-      
-     // update cell velocities
-     float pressureToVelocityFactor = timestep / (DENSITY * cellWidth);
-     for (int i = 0; i < cells.length; i++) {
+
+      // update cell velocities
+      println("update cell velocities");
+      float pressureToVelocityFactor = timestep / (DENSITY * cellWidth);
+      for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
-          
+
           // update left and top velocities
           if (i != 0)
             cell.velocityXLeft -= pressureToVelocityFactor * (cell.pressure - cells[i-1][j].pressure);
           if (j != 0)
             cell.velocityYTop -= pressureToVelocityFactor * (cell.pressure - cells[i][j-1].pressure);
-          
+
           // not sure how to account for last bottom and right velocities
         }
-      }          
-          
+      }
     }
   }
-  
+
   /**
    * Returns the resulting position after amountOfTime starting from the given position
    */
   private PVector traceFrom(PVector position, float amountOfTime) {
     // we use 2nd order Runge-Kutta
     // which  means we trace only half way before resampling velocity
-    
+
     // compute velocity at current location
     PVector velocity = getVelocityAt(position);
-    
+
     // move along that velocity by half a timestep
     PVector secondPosition = PVector.add(position, PVector.mult(velocity, amountOfTime/2f));
     
     // get velocity to where we've moved back
     PVector secondVelocity = getVelocityAt(secondPosition);
-    
+
     // move the rest of the way using our updated velocity
     PVector finalPosition = PVector.add(secondPosition, PVector.mult(secondVelocity, amountOfTime/2f));
-    
+
     // if our boundary conditions are right, finalPosition should still be within the fluid grid
-    assert(finalPosition.x >= 0);
-    assert(finalPosition.x <= cellWidth * cells.length);
-    assert(finalPosition.y >= 0);
-    assert(finalPosition.y <= cellWidth * cells[0].length);
-    
+//    jAssert("traceFrom: finalPosition.x < 0", finalPosition.x >= 0);
+//    jAssert("traceFrom: finalPosition.x > regionWidth", finalPosition.x < cellWidth * cells.length);
+//    jAssert("traceFrom: finalPosition.y < 0", finalPosition.y >= 0);
+//    jAssert("traceFrom: finalPosition.y > regionHeight", finalPosition.y < cellWidth * cells[0].length);
+
     return finalPosition;
   }
-  
+
   /**
    * Returns a velocity at the given position
    * @param position
@@ -491,10 +506,8 @@ class FluidGrid {
     // looking at https://cs.uwaterloo.ca/~c2batty/teaching/general/Fluids2.pdf
     // page 21, we see that the x and y velocities each form their own staggered grids
     // (Hence the name, "MAC staggered grid")
-    
     int column = columnFromPosition(position);
     int row = rowFromPosition(position);
-
     FluidGridCell containingCell = getCellContaining(position);
 
     boolean leftHalf = position.x < containingCell.position.x;
@@ -502,33 +515,34 @@ class FluidGrid {
 
     FluidGridCell topCell, bottomCell, leftCell, rightCell;
     if (topHalf) {
-       topCell = cells[column][row-1];
-       bottomCell = cells[column][row];
+      topCell = cells[column][max(row - 1, 0)];
+      bottomCell = cells[column][row];
     }
     else {
-       topCell = cells[column][row];
-       bottomCell = cells[column][row+1];
+      topCell = cells[column][row];
+      bottomCell = cells[column][min(row + 1, cells[column].length-1)];
     }
     if (leftHalf) {
-      leftCell = cells[column-1][row];
+      leftCell = cells[max(column - 1, 0)][row];
       rightCell = cells[column][row];
     }
     else {
       leftCell = cells[column][row];
-      rightCell = cells[column+1][row];
+      rightCell = cells[min(column + 1, cells.length-1)][row];
     }
 
-    float velocityX = bilinearInterpolate(topCell.leftEdgePosition, topCell.velocityXLeft,
-                                          topCell.rightEdgePosition, topCell.velocityXRight,
-                                          bottomCell.rightEdgePosition, bottomCell.velocityXRight,
-                                          bottomCell.leftEdgePosition, bottomCell.velocityXLeft,
-                                          position);
-    float velocityY = bilinearInterpolate(leftCell.topEdgePosition, leftCell.velocityYTop,
-                                          leftCell.bottomEdgePosition, leftCell.velocityYBottom,
-                                          rightCell.bottomEdgePosition, rightCell.velocityYBottom,
-                                          rightCell.topEdgePosition, rightCell.velocityYTop,
-                                          position);
-                                          
+    float velocityX = bilinearInterpolate(topCell.leftEdgePosition, topCell.velocityXLeft, 
+    topCell.rightEdgePosition, topCell.velocityXRight, 
+    bottomCell.rightEdgePosition, bottomCell.velocityXRight, 
+    bottomCell.leftEdgePosition, bottomCell.velocityXLeft, 
+    position);
+
+    float velocityY = bilinearInterpolate(leftCell.topEdgePosition, leftCell.velocityYTop, 
+    rightCell.topEdgePosition, rightCell.velocityYTop, 
+    rightCell.bottomEdgePosition, rightCell.velocityYBottom, 
+    leftCell.bottomEdgePosition, leftCell.velocityYBottom, 
+    position);
+
     return new PVector(velocityX, velocityY);
   }
 
@@ -539,9 +553,9 @@ class FluidGrid {
    *     MUST BE within (0,0) -> (regionWidth, regionHeight) rectangle
    */
   private int columnFromPosition(PVector position) {
-    assert(position.x >= 0);
-    assert(position.x <= cellWidth * cells.length);
-    return floor(position.x / cellWidth);
+//    jAssert("columnFromPosition: position.x is < 0: " + position, position.x >= 0);
+//    jAssert("columnFromPosition: position.x is > regionWidth: " + position, position.x < cellWidth * cells.length);
+    return constrain(floor(position.x / cellWidth), 0, cells.length-1);
   }
 
   /**
@@ -549,9 +563,9 @@ class FluidGrid {
    * position MUST BE within (0,0) -> (regionWidth, regionHeight) rectangle
    */
   private int rowFromPosition(PVector position) {
-    assert(position.y >= 0);
-    assert(position.y <= cellWidth * cells[0].length);
-    return floor(position.y / cellWidth);
+//    jAssert("rowFromPosition: position.y is < 0: " + position, position.y >= 0);
+//    jAssert("rowFromPosition: position.y is > regionWidth " + position, position.y < cellWidth * cells[0].length);
+    return constrain(floor(position.y / cellWidth), 0, cells[0].length-1);
   }
 
   /**
