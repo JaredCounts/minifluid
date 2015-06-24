@@ -329,7 +329,7 @@ class FluidGrid {
       // where column or row i corresponds to cellColumn + cellRow * cellColumnCount
       // a(i,i) = negative number of adjacent liquid cells
       // a(i,j) = a(j,i) = 1 if cell j adjacent to cell i is liquid, 0 otherwise
-      int matrixWidth = (int)(cells.length + cells.length * cells[0].length);
+      int matrixWidth = (int)(cells.length * cells[0].length);
 
       // matrixWidth can be on the order of millions or billions, even
       // yet we only need to put values along the diagonal and off diagonals
