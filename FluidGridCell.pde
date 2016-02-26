@@ -37,4 +37,9 @@ class FluidGridCell {
          position.x + velocity.x, position.y + velocity.y); // to
   }
   
+  PVector getCenterVelocity() {
+    return new PVector((velocityXLeft + velocityXRight) / 2.f,
+                                   (velocityYTop + velocityYBottom) / 2.f);
+  }
+  
 }

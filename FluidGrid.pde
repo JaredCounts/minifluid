@@ -513,36 +513,64 @@ class FluidGrid {
     boolean leftHalf = position.x < containingCell.position.x;
     boolean topHalf = position.y < containingCell.position.y;
 
-    FluidGridCell topCell, bottomCell, leftCell, rightCell;
-    if (topHalf) {
-      topCell = cells[column][max(row - 1, 0)];
-      bottomCell = cells[column][row];
+    FluidGridCell topLeftCell, topRightcell, bottomLeftCell, bottomRightCell;
+    
+    int leftColumn = max(column - 1, 0);
+    int rightColumn = min(column + 1, cells.length - 1);
+    int topRow = max(row - 1, 0);
+    int bottomRow = min(row + 1, cells[0].length - 1);
+    
+    if (leftHalf && topHalf) { // top left
+      topLeftCell = cells[leftColumn][topRow];
+      topRightcell = cells[column][topRow];
+      bottomRightCell = cells[column][row];
+      bottomLeftCell = cells[leftColumn][row];
+    }
+    else if (!leftHalf && topHalf) { // top right
+      topLeftCell = cells[column][topRow];
+      topRightcell = cells[rightColumn][topRow];
+      bottomRightCell = cells[rightColumn][row];
+      bottomLeftCell = cells[column][row];
+    }
+    else if (!leftHalf && !topHalf) { // bottom right
+      topLeftCell = cells[column][row];
+      topRightcell = cells[rightColumn][row];
+      bottomRightCell = cells[rightColumn][bottomRow];
+      bottomLeftCell = cells[column][bottomRow];
+    }
+    else if (leftHalf && !topHalf) { // bottom left
+      topLeftCell = cells[leftColumn][row];
+      topRightcell = cells[column][row];
+      bottomRightCell = cells[column][bottomRow];
+      bottomLeftCell = cells[leftColumn][bottomRow];
     }
     else {
-      topCell = cells[column][row];
-      bottomCell = cells[column][min(row + 1, cells[column].length-1)];
+      jAssert("getVelocityAt: Logic error in getting surrounding 4 cells.", false);
+      topLeftCell = cells[column][row];
+      topRightcell = cells[column][row];
+      bottomRightCell = cells[column][row];
+      bottomLeftCell = cells[column][row];
     }
-    if (leftHalf) {
-      leftCell = cells[max(column - 1, 0)][row];
-      rightCell = cells[column][row];
-    }
-    else {
-      leftCell = cells[column][row];
-      rightCell = cells[min(column + 1, cells.length-1)][row];
-    }
-
-    float velocityX = bilinearInterpolate(topCell.leftEdgePosition, topCell.velocityXLeft, 
-    topCell.rightEdgePosition, topCell.velocityXRight, 
-    bottomCell.rightEdgePosition, bottomCell.velocityXRight, 
-    bottomCell.leftEdgePosition, bottomCell.velocityXLeft, 
-    position);
-
-    float velocityY = bilinearInterpolate(leftCell.topEdgePosition, leftCell.velocityYTop, 
-    rightCell.topEdgePosition, rightCell.velocityYTop, 
-    rightCell.bottomEdgePosition, rightCell.velocityYBottom, 
-    leftCell.bottomEdgePosition, leftCell.velocityYBottom, 
-    position);
-
+    
+    PVector topLeftVelocity = topLeftCell.getCenterVelocity();
+    PVector topRightVelocity = topRightcell.getCenterVelocity();
+    PVector bottomRightVelocity = bottomRightCell.getCenterVelocity();
+    PVector bottomLeftVelocity = bottomLeftCell.getCenterVelocity();
+  
+    float velocityX = bilinearInterpolate(
+      topLeftCell.position, topLeftVelocity.x, 
+      topRightcell.position, topRightVelocity.x, 
+      bottomRightCell.position, bottomRightVelocity.x, 
+      bottomLeftCell.position, bottomLeftVelocity.x, 
+      position);
+      
+    float velocityY = bilinearInterpolate(
+      topLeftCell.position, topLeftVelocity.y, 
+      topRightcell.position, topRightVelocity.y, 
+      bottomRightCell.position, bottomRightVelocity.y, 
+      bottomLeftCell.position, bottomLeftVelocity.y, 
+      position);
+      
     return new PVector(velocityX, velocityY);
   }
 
