@@ -350,77 +350,81 @@ class FluidGrid {
       for (int i = 0; i < cells.length; i++) {
         for (int j = 0; j < cells[i].length; j++) {
           FluidGridCell cell = cells[i][j];
-          
-          if (!cell.hasLiquid)
-            continue;
 
           int liquidMatrixIndex = i + cells.length * j;
-
-          // set diagonal value of the pressure matrix
-          // negative number of adjacent cells with liqud
+                                
           int adjacentLiquidCellCount = 0;
-          if (i != 0)
-            adjacentLiquidCellCount += cells[i-1][j].hasLiquid ? 1 : 0;
-          if (i != cells.length-1)
-            adjacentLiquidCellCount += cells[i+1][j].hasLiquid ? 1 : 0;
-          if (j != 0)
-            adjacentLiquidCellCount += cells[i][j-1].hasLiquid ? 1 : 0;
-          if (j != cells[0].length-1)
-            adjacentLiquidCellCount += cells[i][j+1].hasLiquid ? 1 : 0;
-
+          if (i != 0) {
+            if (cells[i-1][j].hasLiquid)
+              adjacentLiquidCellCount++;
+          }
+          if (i != cells.length-1) {
+            if (cells[i+1][j].hasLiquid)
+              adjacentLiquidCellCount++;
+          }
+          if (j != 0) {
+            if (cells[i][j-1].hasLiquid)
+            adjacentLiquidCellCount++;
+          }
+          if (j != cells[0].length-1) {
+            if (cells[i][j+1].hasLiquid)
+              adjacentLiquidCellCount++;
+          }
+          
           liquidMatrix.setEntry(liquidMatrixIndex, // column
                                 liquidMatrixIndex, // row
                                 -adjacentLiquidCellCount); // value
-
+                                  
           // set off-diagonal values of the pressure matrix
-          if (i != 0) {
-            if (cells[i-1][j].hasLiquid) {
-              int liquidMatrixAdjacentIndex = (i-1) + cells.length * j;
-              liquidMatrix.setEntry(liquidMatrixIndex, // column
-                                    liquidMatrixAdjacentIndex, // row
-                                    1.0); // value
-              liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
-                                    liquidMatrixIndex, // row
-                                    1.0); // value
+          if (cell.hasLiquid) {
+            if (i != 0) {
+              if (cells[i-1][j].hasLiquid) {
+                int liquidMatrixAdjacentIndex = (i-1) + cells.length * j;
+                liquidMatrix.setEntry(liquidMatrixIndex, // column
+                                      liquidMatrixAdjacentIndex, // row
+                                      1.0); // value
+                liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
+                                      liquidMatrixIndex, // row
+                                      1.0); // value
+              }
+            }
+            if (i != cells.length-1) {
+              if (cells[i+1][j].hasLiquid) {
+                int liquidMatrixAdjacentIndex = (i+1) + cells.length * j;
+                liquidMatrix.setEntry(liquidMatrixIndex, // column
+                                      liquidMatrixAdjacentIndex, // row
+                                      1.0); // value
+                liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
+                                      liquidMatrixIndex, // row
+                                      1.0); // value
+              }
+            }
+            if (j != 0) {
+              if (cells[i][j-1].hasLiquid) {
+                int liquidMatrixAdjacentIndex = i + cells.length * (j-1);
+                liquidMatrix.setEntry(liquidMatrixIndex, // column
+                                      liquidMatrixAdjacentIndex, // row
+                                      1.0); // value
+                liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
+                                      liquidMatrixIndex, // row
+                                      1.0); // value
+              }
+            }
+            if (j != cells[0].length-1) {
+              if (cells[i][j+1].hasLiquid) {
+                int liquidMatrixAdjacentIndex = i + cells.length * (j+1);
+                liquidMatrix.setEntry(liquidMatrixIndex, // column
+                                      liquidMatrixAdjacentIndex, // row
+                                      1.0); // value
+                liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
+                                      liquidMatrixIndex, // row
+                                      1.0); // value
+              }
             }
           }
-          if (i != cells.length-1) {
-            if (cells[i+1][j].hasLiquid) {
-              int liquidMatrixAdjacentIndex = (i+1) + cells.length * j;
-              liquidMatrix.setEntry(liquidMatrixIndex, // column
-                                    liquidMatrixAdjacentIndex, // row
-                                    1.0); // value
-              liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
-                                    liquidMatrixIndex, // row
-                                    1.0); // value
-            }
-          }
-
-          if (j != 0) {
-            if (cells[i][j-1].hasLiquid) {
-              int liquidMatrixAdjacentIndex = i + cells.length * (j-1);
-              liquidMatrix.setEntry(liquidMatrixIndex, // column
-                                    liquidMatrixAdjacentIndex, // row
-                                    1.0); // value
-              liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
-                                    liquidMatrixIndex, // row
-                                    1.0); // value
-            }
-          }
-          if (j != cells[0].length-1) {
-            if (cells[i][j+1].hasLiquid) {
-              int liquidMatrixAdjacentIndex = i + cells.length * (j+1);
-              liquidMatrix.setEntry(liquidMatrixIndex, // column
-                                    liquidMatrixAdjacentIndex, // row
-                                    1.0); // value
-              liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
-                                    liquidMatrixIndex, // row
-                                    1.0); // value
-            }
-          }
-
+          
           // and finally the divergence vector entry
-          float totalInwardVelocity = cell.velocityYTop - cell.velocityYBottom + cell.velocityXLeft - cell.velocityXRight;
+          float totalInwardVelocity = cell.velocityYBottom - cell.velocityYTop + cell.velocityXRight - cell.velocityXLeft;
           float divergence = totalInwardVelocity * divergenceFactor;
           divergenceVector.setEntry(liquidMatrixIndex, (double)divergence);
         }
