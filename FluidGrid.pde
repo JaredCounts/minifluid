@@ -1,3 +1,5 @@
+import java.util.Map;
+
 /** 
  * Fluid Grid
  * Mutable object.
@@ -81,6 +83,10 @@ class FluidGrid {
           cell.velocityYBottom = new Float(0);
       }
     }
+    cells[0][0].hasLiquid = false;
+//    cells[1][0].hasLiquid = false;
+//    cells[0][1].hasLiquid = false;
+//    cells[1][1].hasLiquid = false;
   }
 
   /**
@@ -276,36 +282,59 @@ class FluidGrid {
     // and p are the pressure values on the left hand side 
     //
     // cell index in the matrix = (x + width * y + width * height * z) for 3D, or in our case: (x + width * y) for 2D
+    //
+    // there is one caveat
+    // if we build a matrix for the entire fluid grid, we'll end up getting a singular (unsolvable) matrix
+    // for our boundary conditions to work (that is having nonliquid cells)
+    // we need to remove the columns and rows of liquid cells
+    //
+    // we do this by first generating a map of "grid index" to "matrix index" by iterating over all the cells and only adding the liquid cells
+    // then, we can easily reference cells by their grid position or their matrix position using these maps
 
-    // set up liquid matrix and divergence vector
-    // which respectively make up the A and b of our A x = b equation.
-    // where column or row i corresponds to cellColumn + cellRow * cellColumnCount
-    // a(i,i) = negative number of adjacent liquid cells
-    // a(i,j) = a(j,i) = 1 if cell j adjacent to cell i is liquid, 0 otherwise
-    int matrixWidth = (int)(cells.length * cells[0].length);
-
-    // matrixWidth can be on the order of millions or billions, even
-    // yet we only need to put values along the diagonal and off diagonals
-
-    // so it's crucial that we use a sparse matrix,
-    // unless we want to use up your computer's entire memory, and take minutes per timestep
-
-    // the liquid matrix gives us coefficients for the left hand side of the equation above
+    // only need to compute this once
+    float divergenceFactor = DENSITY * cellWidth / timestep;
+    
+    // map from grid index (i + j * columnCount) to matrix column/row (just one index, since it's symmetric!)
+    Map<Integer, Integer> gridIndexToMatrixIndex = new HashMap<Integer,Integer>();
+    int matrixWidth = 0;
+    for (int i = 0; i < cells.length; i++) {
+      for (int j = 0; j < cells[i].length; j++) {
+        if (cells[i][j].hasLiquid) {
+          int gridIndex = i + j * cells.length;
+          int matrixIndex = matrixWidth;
+          matrixWidth++;
+          gridIndexToMatrixIndex.put((Integer)gridIndex, (Integer)matrixIndex);
+        }
+      }
+    }
+    
+    // matrixWidth should == # liquid cells
+    
+    // now we can initiate our matrix and vector
+    // the matrix can be huge (billions of entries)
+    // but most of the entries will be 0 (other than the ones mentioned above)
+    // in this case, it is in our best interests to use a "sparse matrix" format, a format optimized for matrices with a lot of 0 entries
+    
+    // the liquid matrix gives us coefficients for the left hand side of the crucial equation above
     SparseMatrix liquidMatrix = new SparseMatrix(matrixWidth, matrixWidth);
 
     Vector divergenceVector = new Vector(matrixWidth);
 
-    // only need to compute this once
-    float divergenceFactor = DENSITY * cellWidth / timestep;
 
     // generating divergenceVector and liquidMatrix
     println("generating divergenceVector and liquidMatrix: " + matrixWidth);
     for (int i = 0; i < cells.length; i++) {
       for (int j = 0; j < cells[i].length; j++) {
         FluidGridCell cell = cells[i][j];
-
-        int liquidMatrixIndex = i + cells.length * j;
-                              
+        
+        if (!cell.hasLiquid)
+          continue;
+        
+        // get indices for the grid and matrix
+        int gridIndex = i + cells.length * j;
+        int matrixIndex = gridIndexToMatrixIndex.get((Integer)gridIndex);
+        
+        // count the number of adjacent liquid cells
         int adjacentLiquidCellCount = 0;
         if (i != 0) {
           if (cells[i-1][j].hasLiquid)
@@ -324,53 +353,58 @@ class FluidGrid {
             adjacentLiquidCellCount++;
         }
         
-        liquidMatrix.setEntry(liquidMatrixIndex, // column
-                              liquidMatrixIndex, // row
+        // the diagonal entries are the negative count of liquid cells
+        liquidMatrix.setEntry(matrixIndex, // column
+                              matrixIndex, // row
                               -adjacentLiquidCellCount); // value
                                 
         // set off-diagonal values of the pressure matrix
         if (cell.hasLiquid) {
           if (i != 0) {
             if (cells[i-1][j].hasLiquid) {
-              int liquidMatrixAdjacentIndex = (i-1) + cells.length * j;
-              liquidMatrix.setEntry(liquidMatrixIndex, // column
-                                    liquidMatrixAdjacentIndex, // row
+              int adjacentGridIndex = (i-1) + j * cells.length;
+              int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
+              liquidMatrix.setEntry(matrixIndex, // column
+                                    adjacentMatrixIndex, // row
                                     1.0); // value
-              liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
-                                    liquidMatrixIndex, // row
+              liquidMatrix.setEntry(adjacentMatrixIndex, // column
+                                    matrixIndex, // row
                                     1.0); // value
             }
           }
           if (i != cells.length-1) {
             if (cells[i+1][j].hasLiquid) {
-              int liquidMatrixAdjacentIndex = (i+1) + cells.length * j;
-              liquidMatrix.setEntry(liquidMatrixIndex, // column
-                                    liquidMatrixAdjacentIndex, // row
+              int adjacentGridIndex = (i+1) + j * cells.length;
+              int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
+              liquidMatrix.setEntry(matrixIndex, // column
+                                    adjacentMatrixIndex, // row
                                     1.0); // value
-              liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
-                                    liquidMatrixIndex, // row
+              liquidMatrix.setEntry(adjacentMatrixIndex, // column
+                                    matrixIndex, // row
                                     1.0); // value
             }
           }
           if (j != 0) {
             if (cells[i][j-1].hasLiquid) {
-              int liquidMatrixAdjacentIndex = i + cells.length * (j-1);
-              liquidMatrix.setEntry(liquidMatrixIndex, // column
-                                    liquidMatrixAdjacentIndex, // row
+              int adjacentGridIndex = i + (j-1) * cells.length;
+              int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
+              liquidMatrix.setEntry(matrixIndex, // column
+                                    adjacentMatrixIndex, // row
                                     1.0); // value
-              liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
-                                    liquidMatrixIndex, // row
+              liquidMatrix.setEntry(adjacentMatrixIndex, // column
+                                    matrixIndex, // row
                                     1.0); // value
             }
           }
           if (j != cells[0].length-1) {
             if (cells[i][j+1].hasLiquid) {
-              int liquidMatrixAdjacentIndex = i + cells.length * (j+1);
-              liquidMatrix.setEntry(liquidMatrixIndex, // column
-                                    liquidMatrixAdjacentIndex, // row
+              int adjacentGridIndex = i + (j+1) * cells.length;
+              int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
+              liquidMatrix.setEntry(matrixIndex, // column
+                                    adjacentMatrixIndex, // row
                                     1.0); // value
-              liquidMatrix.setEntry(liquidMatrixAdjacentIndex, // column
-                                    liquidMatrixIndex, // row
+              liquidMatrix.setEntry(adjacentMatrixIndex, // column
+                                    matrixIndex, // row
                                     1.0); // value
             }
           }
@@ -379,8 +413,16 @@ class FluidGrid {
         // and finally the divergence vector entry
         float totalInwardVelocity = cell.velocityYBottom - cell.velocityYTop + cell.velocityXRight - cell.velocityXLeft;
         float divergence = totalInwardVelocity * divergenceFactor;
-        divergenceVector.setEntry(liquidMatrixIndex, (double)divergence);
+        divergenceVector.setEntry(matrixIndex, (double)divergence);
       }
+    }
+
+    println();    
+    for (int i = 0; i < matrixWidth; i++) {
+      for (int j = 0; j < matrixWidth; j++) {
+        print(liquidMatrix.getEntry(i,j) + "\t");
+      } 
+      println();
     }
 
     // solve for pressures
@@ -395,10 +437,16 @@ class FluidGrid {
     for (int i = 0; i < cells.length; i++) {
       for (int j = 0; j < cells[i].length; j++) {
         FluidGridCell cell = cells[i][j];
+        
+        if (!cell.hasLiquid) {
+          cell.pressure = ATMOSPHERIC_PRESSURE;
+          continue; 
+        }
 
-        int pressuresIndex = i + j * cells.length;
+        int gridIndex = i + j * cells.length;
+        int matrixIndex = gridIndexToMatrixIndex.get((Integer)gridIndex);
 
-        float pressure = (float)pressures.getEntry(pressuresIndex);
+        float pressure = (float)pressures.getEntry(matrixIndex);
 
         cell.pressure = pressure;
       }

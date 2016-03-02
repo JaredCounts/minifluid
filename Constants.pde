@@ -8,3 +8,6 @@ float VISCOSITY = 100;
 
 // not sure what a good value would be here either...
 float DENSITY = 10;
+
+// for nonliquid cells
+float ATMOSPHERIC_PRESSURE = 1;
