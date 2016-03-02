@@ -190,26 +190,26 @@ class FluidGrid {
 
           // solve for left edge
           PVector leftEdgePosition = cell.leftEdgePosition;
-          PVector leftEdgeTracedPosition = traceFrom(leftEdgePosition, timestep);
+          PVector leftEdgeTracedPosition = traceFrom(leftEdgePosition, -timestep);
           PVector leftEdgeTracedVelocity = getVelocityAt(leftEdgeTracedPosition);
           newVelocitiesX[i][j] = leftEdgeTracedVelocity.x;
 
           // solve for upper edge
           PVector topEdgePosition = cell.topEdgePosition;
-          PVector topEdgeTracedPosition = traceFrom(topEdgePosition, timestep);
+          PVector topEdgeTracedPosition = traceFrom(topEdgePosition, -timestep);
           PVector topEdgeTracedVelocity = getVelocityAt(topEdgeTracedPosition);
           newVelocitiesY[i][j] = topEdgeTracedVelocity.y;
 
           // lets not forget the last cells' bottom and right velocities
           if (i == cells.length-1 && j < cells[0].length) {
             PVector rightEdgePosition = cell.rightEdgePosition;
-            PVector rightEdgeTracedPosition = traceFrom(rightEdgePosition, timestep);
+            PVector rightEdgeTracedPosition = traceFrom(rightEdgePosition, -timestep);
             PVector rightEdgeTracedVelocity = getVelocityAt(rightEdgeTracedPosition);
             newVelocitiesX[i+1][j] = rightEdgeTracedVelocity.x;
           }
           if (j == cells[0].length-1 && i < cells.length) {
             PVector bottomEdgePosition = cell.bottomEdgePosition;
-            PVector bottomEdgeTracedPosition = traceFrom(bottomEdgePosition, timestep);
+            PVector bottomEdgeTracedPosition = traceFrom(bottomEdgePosition, -timestep);
             PVector bottomEdgeTracedVelocity = getVelocityAt(bottomEdgeTracedPosition);
             newVelocitiesY[i][j+1] = bottomEdgeTracedVelocity.y;
           }
