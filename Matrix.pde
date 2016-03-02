@@ -9,7 +9,7 @@ import org.apache.commons.math3.linear.*;
  */
  
 class SparseMatrix {
-  protected final OpenMapRealMatrix matrix;
+  protected final AbstractRealMatrix matrix;
   
   /**
    * Create a new sparse matrix
@@ -18,11 +18,15 @@ class SparseMatrix {
    * @param number of rows
    */
   public SparseMatrix(int columns, int rows) {
-    matrix = new OpenMapRealMatrix(rows, columns);
+    matrix = new Array2DRowRealMatrix(rows, columns);
   }
   
   public void setEntry(int column, int row, double value) {
     matrix.setEntry(row, column, value); // yes, their rows come before columns
+  }
+  
+  public double getEntry(int column, int row) {
+    return matrix.getEntry(row, column); 
   }
 }
 
@@ -61,13 +65,13 @@ class Vector {
  * 
  */
 class LinearSolver {
-  private final int MAX_PCG_ITERATIONS = 100;
-  private final double PCG_DELTA = 2;
-  private final boolean PCG_CHECK_POSITIVE_DEFINITENESS = true;
-  private final ConjugateGradient conjugateGradientSolver = 
-                      new ConjugateGradient(MAX_PCG_ITERATIONS, // maximum iterations
-                                            PCG_DELTA, 
-                                            PCG_CHECK_POSITIVE_DEFINITENESS);
+//  private final int MAX_PCG_ITERATIONS = 100;
+//  private final double PCG_DELTA = 2;
+//  private final boolean PCG_CHECK_POSITIVE_DEFINITENESS = true;
+//  private final ConjugateGradient conjugateGradientSolver = 
+//                      new ConjugateGradient(MAX_PCG_ITERATIONS, // maximum iterations
+//                                            PCG_DELTA, 
+//                                            PCG_CHECK_POSITIVE_DEFINITENESS);
   
   /**
    * PCG Solver
@@ -80,14 +84,18 @@ class LinearSolver {
    *
    */
   public Vector pcgSolve(SparseMatrix A, Vector b) {
-    Vector initialGuess = new Vector(b.size());
-    for (int i = 0; i < initialGuess.size(); i++)
-      initialGuess.setEntry(i, Math.random()); // not sure what to put here, honestly 
-    
-    RealVector x = conjugateGradientSolver.solveInPlace(A.matrix,
-                                                        null,
-                                                        b.vector,
-                                                        initialGuess.vector);
+//    Vector initialGuess = new Vector(b.size());
+//    for (int i = 0; i < initialGuess.size(); i++)
+//      initialGuess.setEntry(i, 0); // not sure what to put here, honestly 
+//    ConjugateGradient conjugateGradientSolver = new ConjugateGradient(1000, 100, false);
+//    
+//    RealVector x = conjugateGradientSolver.solve(A.matrix, b.vector);
+//    println(x.getEntry(0));
+//    return new Vector(x);
+
+    DecompositionSolver solver = new LUDecomposition(A.matrix).getSolver();
+    RealVector x = solver.solve(b.vector);
+    println(x.getEntry(0));
     return new Vector(x);
   }
 }
