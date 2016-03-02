@@ -26,7 +26,7 @@ float bilinearInterpolate(PVector topLeftPosition, float topLeftValue,
   
   // get the rectangle's width and height
   float rectDeltaX = topRightPosition.x - topLeftPosition.x;
-  float rectDeltaY = topLeftPosition.y - bottomLeftPosition.y;
+  float rectDeltaY = bottomLeftPosition.y - topLeftPosition.y;
   
   // get desiredPosition's x and y fractional positions between the four corners
   float fractionX = (desiredPosition.x - topLeftPosition.x) / rectDeltaX;
