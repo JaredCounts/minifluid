@@ -1,9 +1,12 @@
 FluidGrid fluidGrid;
 
+int cellWidth = 35;
 void setup() {
+  // 1280 720
   size(1280, 720, P2D);
   
-  fluidGrid = new FluidGrid(10, 1280, 720);
+  fluidGrid = new FluidGrid(1, 2, 2);
+//  noLoop();
 }
 void draw() {
   // physics
