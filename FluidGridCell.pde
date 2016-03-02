@@ -24,7 +24,7 @@ class FluidGridCell {
    * note that edge velocities must be set manually. 
    */
   FluidGridCell() {
-    pressure = 0;
+    pressure = random(100);
     hasLiquid = false;
   }
   
