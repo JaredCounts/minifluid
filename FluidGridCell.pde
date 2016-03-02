@@ -29,8 +29,15 @@ class FluidGridCell {
   }
   
   void draw() {
-    PVector velocity = new PVector((velocityXLeft + velocityXRight) / 2.f,
-                                   (velocityYTop + velocityYBottom) / 2.f);
+    PVector velocity = getCenterVelocity();
+    colorMode(HSB,255);
+    if (hasLiquid)
+      fill(pressure*100, 255, 255);
+    else
+      fill(255);
+    
+    noStroke();
+    rect(position.x-cellWidth/2, position.y-cellWidth/2, cellWidth, cellWidth);
     
     stroke(0);
     line(position.x, position.y, // from
