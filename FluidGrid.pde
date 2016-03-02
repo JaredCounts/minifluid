@@ -47,10 +47,10 @@ class FluidGrid {
         cell.hasLiquid = true; //random(0,1) > 0.5;
 
         cell.position = new PVector(i * cellWidth + cellWidth/2.f, j * cellWidth + cellWidth/2.f);
-        cell.topEdgePosition = new PVector(i * cellWidth + cellWidth / 2.f, j * cellWidth);
-        cell.rightEdgePosition = new PVector(i * cellWidth + cellWidth, j * cellWidth + cellWidth/2.f);
-        cell.bottomEdgePosition = new PVector(i * cellWidth + cellWidth / 2.f, j * cellWidth + cellWidth);
-        cell.leftEdgePosition = new PVector(i * cellWidth, j * cellWidth + cellWidth/2.f);
+        cell.topEdgePosition = PVector.add(cell.position, new PVector(0, -cellWidth/2.f));
+        cell.rightEdgePosition = PVector.add(cell.position, new PVector(cellWidth/2.f,0));
+        cell.bottomEdgePosition = PVector.add(cell.position, new PVector(0,cellWidth/2.f));
+        cell.leftEdgePosition = PVector.add(cell.position, new PVector(-cellWidth/2.f,0));
 
         // initialize left/top edge velocities
         Float velocityX = new Float(random(-10, 10));
