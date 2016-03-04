@@ -53,10 +53,18 @@ class FluidGrid {
     
     for (int i = 0; i < columnCount; i++) {
       for (int j = 0; j < rowCount; j++) {
-        FluidGridCell cell = new FluidGridCell();
-        cells[i][j] = cell;
+        CellType cellType;
         
-        cell.hasLiquid = true; //random(0,1) > 0.5;
+        if (i == 0 || i == columnCount-1 || j == 0 || j == rowCount-1)
+          cellType = CellType.SOLID;
+        else if (j < rowCount/2)
+          cellType = CellType.AIR;
+        else
+          cellType = CellType.LIQUID;
+          
+          
+        FluidGridCell cell = new FluidGridCell(cellType);
+        cells[i][j] = cell;
 
         cell.position = new PVector(i * cellWidth + cellWidth/2.f, j * cellWidth + cellWidth/2.f);
         cell.topEdgePosition = PVector.add(cell.position, new PVector(0, -cellWidth/2.f));
@@ -65,12 +73,12 @@ class FluidGrid {
         cell.leftEdgePosition = PVector.add(cell.position, new PVector(-cellWidth/2.f,0));
 
         // initialize left/top edge velocities
-        Float velocityX = new Float(random(-10, 10));
+        Float velocityX = new Float(random(-0.01, 0.01));
         cell.velocityXLeft = velocityX;
         if (i != 0) // adjacent cells will point to the same velocity objects
           cells[i-1][j].velocityXRight = velocityX;
 
-        Float velocityY = new Float(random(-10, 10));
+        Float velocityY = new Float(random(-0.01, 0.01));
         cell.velocityYTop = velocityY;
         if (j != 0)
           cells[i][j-1].velocityYBottom = velocityY;
@@ -83,10 +91,6 @@ class FluidGrid {
           cell.velocityYBottom = new Float(0);
       }
     }
-    cells[0][0].hasLiquid = false;
-//    cells[1][0].hasLiquid = false;
-//    cells[0][1].hasLiquid = false;
-//    cells[1][1].hasLiquid = false;
   }
 
   /**
@@ -299,7 +303,7 @@ class FluidGrid {
     int matrixWidth = 0;
     for (int i = 0; i < cells.length; i++) {
       for (int j = 0; j < cells[i].length; j++) {
-        if (cells[i][j].hasLiquid) {
+        if (cells[i][j].isLiquid()) {
           int gridIndex = i + j * cells.length;
           int matrixIndex = matrixWidth;
           matrixWidth++;
@@ -327,7 +331,7 @@ class FluidGrid {
       for (int j = 0; j < cells[i].length; j++) {
         FluidGridCell cell = cells[i][j];
         
-        if (!cell.hasLiquid)
+        if (!cell.isLiquid())
           continue;
         
         // get indices for the grid and matrix
@@ -335,33 +339,33 @@ class FluidGrid {
         int matrixIndex = gridIndexToMatrixIndex.get((Integer)gridIndex);
         
         // count the number of adjacent liquid cells
-        int adjacentLiquidCellCount = 0;
+        int adjacentNonsolidCellCount = 0;
         if (i != 0) {
-          if (cells[i-1][j].hasLiquid)
-            adjacentLiquidCellCount++;
+          if (!cells[i-1][j].isSolid())
+            adjacentNonsolidCellCount++;
         }
         if (i != cells.length-1) {
-          if (cells[i+1][j].hasLiquid)
-            adjacentLiquidCellCount++;
+          if (!cells[i+1][j].isSolid())
+            adjacentNonsolidCellCount++;
         }
         if (j != 0) {
-          if (cells[i][j-1].hasLiquid)
-          adjacentLiquidCellCount++;
+          if (!cells[i][j-1].isSolid())
+            adjacentNonsolidCellCount++;
         }
         if (j != cells[0].length-1) {
-          if (cells[i][j+1].hasLiquid)
-            adjacentLiquidCellCount++;
+          if (!cells[i][j+1].isSolid())
+            adjacentNonsolidCellCount++;
         }
         
         // the diagonal entries are the negative count of liquid cells
         liquidMatrix.setEntry(matrixIndex, // column
                               matrixIndex, // row
-                              -adjacentLiquidCellCount); // value
+                              -adjacentNonsolidCellCount); // value
                                 
         // set off-diagonal values of the pressure matrix
-        if (cell.hasLiquid) {
+        if (cell.isLiquid()) {
           if (i != 0) {
-            if (cells[i-1][j].hasLiquid) {
+            if (cells[i-1][j].isLiquid()) {
               int adjacentGridIndex = (i-1) + j * cells.length;
               int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
               liquidMatrix.setEntry(matrixIndex, // column
@@ -373,7 +377,7 @@ class FluidGrid {
             }
           }
           if (i != cells.length-1) {
-            if (cells[i+1][j].hasLiquid) {
+            if (cells[i+1][j].isLiquid()) {
               int adjacentGridIndex = (i+1) + j * cells.length;
               int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
               liquidMatrix.setEntry(matrixIndex, // column
@@ -385,7 +389,7 @@ class FluidGrid {
             }
           }
           if (j != 0) {
-            if (cells[i][j-1].hasLiquid) {
+            if (cells[i][j-1].isLiquid()) {
               int adjacentGridIndex = i + (j-1) * cells.length;
               int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
               liquidMatrix.setEntry(matrixIndex, // column
@@ -397,7 +401,7 @@ class FluidGrid {
             }
           }
           if (j != cells[0].length-1) {
-            if (cells[i][j+1].hasLiquid) {
+            if (cells[i][j+1].isLiquid()) {
               int adjacentGridIndex = i + (j+1) * cells.length;
               int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
               liquidMatrix.setEntry(matrixIndex, // column
@@ -417,13 +421,13 @@ class FluidGrid {
       }
     }
 
-    println();    
-    for (int i = 0; i < matrixWidth; i++) {
-      for (int j = 0; j < matrixWidth; j++) {
-        print(liquidMatrix.getEntry(i,j) + "\t");
-      } 
-      println();
-    }
+    //println();    
+    //for (int i = 0; i < matrixWidth; i++) {
+    //  for (int j = 0; j < matrixWidth; j++) {
+    //    print(liquidMatrix.getEntry(i,j) + "\t");
+    //  } 
+    //  println();
+    //}
 
     // solve for pressures
     // where liquidMatrix * pressures = divergence
@@ -438,8 +442,12 @@ class FluidGrid {
       for (int j = 0; j < cells[i].length; j++) {
         FluidGridCell cell = cells[i][j];
         
-        if (!cell.hasLiquid) {
+        if (cell.isAir()) {
           cell.pressure = ATMOSPHERIC_PRESSURE;
+          continue; 
+        }
+        
+        if (cell.isSolid()) {
           continue; 
         }
 
@@ -678,4 +686,3 @@ class FluidGrid {
     return cells[columnFromPosition(position)][rowFromPosition(position)];
   }
 }
-

@@ -2,7 +2,14 @@
  * Fluid Grid Cell
  * Mutable object which acts as a container for pressure, and has references to its edge velocities
  */
+ public enum CellType {
+  SOLID,
+  AIR,
+  LIQUID
+}
 class FluidGridCell {
+
+  
   // pressure at the center of this cell
   float pressure; 
 
@@ -16,23 +23,25 @@ class FluidGridCell {
   // each edge position is the center of each edge of the cell
   PVector topEdgePosition, rightEdgePosition, bottomEdgePosition, leftEdgePosition;
   
-  // flag for whether this cell is filled with liquid
-  boolean hasLiquid;
+  // determine whether this cell is SOLID, AIR, or LIQUID
+  CellType type;
 
   /**
    * Construct an empty FluidGridCell
    * note that edge velocities must be set manually. 
    */
-  FluidGridCell() {
-    pressure = random(100);
-    hasLiquid = false;
+  FluidGridCell(CellType cellType) {
+    pressure = 0;
+    type = cellType;
   }
   
   void draw() {
     PVector velocity = getCenterVelocity();
     colorMode(HSB,255);
-    if (hasLiquid)
+    if (isLiquid())
       fill(pressure*100, 255, 255);
+    else if (isSolid())
+      fill(0);
     else
       fill(255);
     
@@ -47,6 +56,18 @@ class FluidGridCell {
   PVector getCenterVelocity() {
     return new PVector((velocityXLeft + velocityXRight) / 2.f,
                                    (velocityYTop + velocityYBottom) / 2.f);
+  }
+  
+  boolean isLiquid() {
+    return type == CellType.LIQUID; 
+  }
+  
+  boolean isSolid() {
+    return type == CellType.SOLID; 
+  }
+  
+  boolean isAir() {
+    return type == CellType.AIR;
   }
   
 }
