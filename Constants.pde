@@ -10,4 +10,4 @@ float VISCOSITY = 100;
 float DENSITY = 10;
 
 // for nonliquid cells
-float ATMOSPHERIC_PRESSURE = 1;
+float ATMOSPHERIC_PRESSURE = 0;
