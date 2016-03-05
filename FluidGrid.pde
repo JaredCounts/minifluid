@@ -57,7 +57,7 @@ class FluidGrid {
         
         if (i == 0 || i == columnCount-1 || j == 0 || j == rowCount-1)
           cellType = CellType.SOLID;
-        else if (j < rowCount/2)
+        else if (j < rowCount/2 || i == 1 || i == columnCount-2 || j == 1 || j == rowCount-2)
           cellType = CellType.AIR;
         else
           cellType = CellType.LIQUID;
@@ -73,12 +73,12 @@ class FluidGrid {
         cell.leftEdgePosition = PVector.add(cell.position, new PVector(-cellWidth/2.f,0));
 
         // initialize left/top edge velocities
-        Float velocityX = new Float(random(-0.01, 0.01));
+        Float velocityX = new Float(0);
         cell.velocityXLeft = velocityX;
         if (i != 0) // adjacent cells will point to the same velocity objects
           cells[i-1][j].velocityXRight = velocityX;
 
-        Float velocityY = new Float(random(-0.01, 0.01));
+        Float velocityY = new Float(0);
         cell.velocityYTop = velocityY;
         if (j != 0)
           cells[i][j-1].velocityYBottom = velocityY;
@@ -91,6 +91,7 @@ class FluidGrid {
           cell.velocityYBottom = new Float(0);
       }
     }
+
   }
 
   /**
@@ -324,7 +325,6 @@ class FluidGrid {
 
     Vector divergenceVector = new Vector(matrixWidth);
 
-
     // generating divergenceVector and liquidMatrix
     println("generating divergenceVector and liquidMatrix: " + matrixWidth);
     for (int i = 0; i < cells.length; i++) {
@@ -363,59 +363,65 @@ class FluidGrid {
                               -adjacentNonsolidCellCount); // value
                                 
         // set off-diagonal values of the pressure matrix
-        if (cell.isLiquid()) {
-          if (i != 0) {
-            if (cells[i-1][j].isLiquid()) {
-              int adjacentGridIndex = (i-1) + j * cells.length;
-              int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
-              liquidMatrix.setEntry(matrixIndex, // column
-                                    adjacentMatrixIndex, // row
-                                    1.0); // value
-              liquidMatrix.setEntry(adjacentMatrixIndex, // column
-                                    matrixIndex, // row
-                                    1.0); // value
-            }
+        if (i != 0) {
+          if (cells[i-1][j].isLiquid()) {
+            int adjacentGridIndex = (i-1) + j * cells.length;
+            int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
+            liquidMatrix.setEntry(matrixIndex, // column
+                                  adjacentMatrixIndex, // row
+                                  1.0); // value
           }
-          if (i != cells.length-1) {
-            if (cells[i+1][j].isLiquid()) {
-              int adjacentGridIndex = (i+1) + j * cells.length;
-              int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
-              liquidMatrix.setEntry(matrixIndex, // column
-                                    adjacentMatrixIndex, // row
-                                    1.0); // value
-              liquidMatrix.setEntry(adjacentMatrixIndex, // column
-                                    matrixIndex, // row
-                                    1.0); // value
-            }
+        }
+        if (i != cells.length-1) {
+          if (cells[i+1][j].isLiquid()) {
+            int adjacentGridIndex = (i+1) + j * cells.length;
+            int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
+            liquidMatrix.setEntry(matrixIndex, // column
+                                  adjacentMatrixIndex, // row
+                                  1.0); // value
           }
-          if (j != 0) {
-            if (cells[i][j-1].isLiquid()) {
-              int adjacentGridIndex = i + (j-1) * cells.length;
-              int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
-              liquidMatrix.setEntry(matrixIndex, // column
-                                    adjacentMatrixIndex, // row
-                                    1.0); // value
-              liquidMatrix.setEntry(adjacentMatrixIndex, // column
-                                    matrixIndex, // row
-                                    1.0); // value
-            }
+        }
+        if (j != 0) {
+          if (cells[i][j-1].isLiquid()) {
+            int adjacentGridIndex = i + (j-1) * cells.length;
+            int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
+            liquidMatrix.setEntry(matrixIndex, // column
+                                  adjacentMatrixIndex, // row
+                                  1.0); // value
           }
-          if (j != cells[0].length-1) {
-            if (cells[i][j+1].isLiquid()) {
-              int adjacentGridIndex = i + (j+1) * cells.length;
-              int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
-              liquidMatrix.setEntry(matrixIndex, // column
-                                    adjacentMatrixIndex, // row
-                                    1.0); // value
-              liquidMatrix.setEntry(adjacentMatrixIndex, // column
-                                    matrixIndex, // row
-                                    1.0); // value
-            }
+        }
+        if (j != cells[0].length-1) {
+          if (cells[i][j+1].isLiquid()) {
+            int adjacentGridIndex = i + (j+1) * cells.length;
+            int adjacentMatrixIndex = gridIndexToMatrixIndex.get((Integer)adjacentGridIndex);
+            liquidMatrix.setEntry(matrixIndex, // column
+                                  adjacentMatrixIndex, // row
+                                  1.0); // value
           }
         }
         
+        
         // and finally the divergence vector entry
         float totalInwardVelocity = cell.velocityYBottom - cell.velocityYTop + cell.velocityXRight - cell.velocityXLeft;
+        
+        // offset velocities if we're against a wall
+        if (i != 0) {
+         if (cells[i-1][j].isSolid())
+           totalInwardVelocity += cell.velocityXLeft;
+        }
+        if (i != cells.length-1) {
+         if (cells[i+1][j].isSolid())
+           totalInwardVelocity -= cell.velocityXRight;
+        }
+        if (j != 0) {
+         if (cells[i][j-1].isSolid())
+           totalInwardVelocity += cell.velocityYTop;
+        }
+        if (j != cells[0].length-1) {
+         if (cells[i][j+1].isSolid())
+           totalInwardVelocity -= cell.velocityYBottom;
+        }
+        
         float divergence = totalInwardVelocity * divergenceFactor;
         divergenceVector.setEntry(matrixIndex, (double)divergence);
       }
@@ -455,29 +461,44 @@ class FluidGrid {
         int matrixIndex = gridIndexToMatrixIndex.get((Integer)gridIndex);
 
         float pressure = (float)pressures.getEntry(matrixIndex);
-
+        
         cell.pressure = pressure;
       }
     }
 
-    // update cell velocities
+    //update cell velocities
     println("update cell velocities");
     float pressureToVelocityFactor = timestep / (DENSITY * cellWidth);
     for (int i = 0; i < cells.length; i++) {
-      for (int j = 0; j < cells[i].length; j++) {
-        FluidGridCell cell = cells[i][j];
-
-        // update left and top velocities
-        if (i != 0)
-          cell.velocityXLeft -= pressureToVelocityFactor * (cell.pressure - cells[i-1][j].pressure);
-        if (j != 0)
-          cell.velocityYTop -= pressureToVelocityFactor * (cell.pressure - cells[i][j-1].pressure);
-
-        // not sure how to account for last bottom and right velocities
-      }
+     for (int j = 0; j < cells[i].length; j++) {
+       FluidGridCell cell = cells[i][j];
+        
+       if (cell.isSolid()) {
+         cell.velocityXLeft = 0.f;
+         cell.velocityXRight = 0.f;
+         cell.velocityYTop = 0.f;
+         cell.velocityYBottom = 0.f;
+       }
+         
+       // update left and top velocities
+       if (i > 0) {
+         if (!cells[i-1][j].isSolid() && !cells[i][j].isSolid())
+           cell.velocityXLeft -= pressureToVelocityFactor * (cell.pressure - cells[i-1][j].pressure);
+         else
+           cell.velocityXLeft = 0.f;
+       }
+       if (j > 0) {
+         if (!cells[i][j-1].isSolid() && !cells[i][j].isSolid())
+           cell.velocityYTop -= pressureToVelocityFactor * (cell.pressure - cells[i][j-1].pressure);
+         else
+           cell.velocityYTop = 0.f;
+       }
+        
+       // not sure how to account for last bottom and right velocities
+     }
     }
   }
-
+//
   /**
    * Solving
    * Using Foster and Fedkiw's "Practical Animation of Liquids" as reference
@@ -508,7 +529,7 @@ class FluidGrid {
     float maxVelocityMagnitude = sqrt(maxVelocityMagitudeSquared);
 
     // and finally, CFL condition
-    timestep = cellWidth / maxVelocityMagnitude;
+    timestep = min(cellWidth / maxVelocityMagnitude, 0.1);
     jAssert("solve: timestep <= 0", timestep > 0);
 
     int solveCount;
@@ -532,7 +553,7 @@ class FluidGrid {
     for (int solve = 0; solve < solveCount; solve++) {
       /* -------------- External Forces -------------- */
       println("external forces");
-      applyExternalForces(timestep);
+      //applyExternalForces(timestep);
 
       /* -------------- Convection -------------- */
       println("convection");
